@@ -44,28 +44,27 @@ export function assessQualification(report: ResearchInput, now = new Date()): Qu
  const count = report.overview.employeeCount ?? report.financials.employeeCount;
  const segment = count === null ? 'unknown' : count < 10 ? 'micro' : count < 50 ? 'small' : count < 250 ? 'medium' : 'enterprise';
  const context = report.qualificationContext;
- const fitReasons = [count === null ? 'Headcount is unknown; SME fit is not established.' : `${count} employees: ${segment} size segment. Velho prioritizes SMEs; this is a prospecting heuristic, not a legal SME classification.`, context.relevanceExplanation, context.deliveryExplanation];
- let fit: number | null = null;
- if (report.identity.status === 'confirmed' && segment !== 'unknown') {
- const size = segment === 'enterprise' ? 25 : 80;
- const relevance = { high: 15, medium: 0, low: -20, unknown: -10 }[context.businessModelRelevance];
- const delivery = { suitable: 5, narrow_pilot_only: -10, unsuitable: -25, unknown: -5 }[context.deliverySuitability];
- fit = Math.max(0, Math.min(100, size + relevance + delivery));
- fitReasons.push(`Fit rubric: size ${size}, relevance ${relevance >= 0 ? '+' : ''}${relevance}, delivery ${delivery >= 0 ? '+' : ''}${delivery}.`);
- }
- const strength = Math.max(0, ...report.automationOpportunities.map(o => o.score));
- const currentNeeds = report.evidence.filter(f => isCurrentNeed(f, now));
- const candidates = report.automationOpportunities.filter(o => o.existingSolutionAssessment.status !== 'already_addressed');
- const relevantStrength = Math.max(0, ...candidates.map(o => o.score));
- const trigger = currentNeeds.length ? 90 : report.evidence.some(f => f.signalType === 'workload_growth' && f.verification === 'verified' && f.freshness === 'recent') ? 50 : 0;
- const coverageUnknown = !report.researchCoverage.some(c => c.category === 'competition' && c.queries.length) || candidates.some(o => o.existingSolutionAssessment.status === 'unknown');
- const partnerPenalty = coverageUnknown ? 10 : 0;
- let commercial = fit === null ? null : !candidates.length ? 0 : Math.max(0, Math.min(fit, Math.round(relevantStrength * 0.6 + trigger * 0.4)) - partnerPenalty);
- if (commercial !== null && !currentNeeds.length) commercial = Math.min(commercial, 35);
- const reasons = [`Commercial rubric: eligible opportunity strength ${relevantStrength} × 0.6 + current trigger ${trigger} × 0.4, capped by customer fit; partner-coverage uncertainty penalty ${partnerPenalty}.`, currentNeeds.length ? 'Recent verified unmet-need evidence supports a discovery conversation.' : 'No recent verified unmet-need evidence: commercial attractiveness is capped at 35.', candidates.length ? 'Existing solutions are assessed per workflow; involvement alone neither proves a gap nor rules out a narrow project.' : 'No opportunity remains outside already-addressed workflows.'];
- if (segment === 'enterprise') reasons.push('Enterprise scale reduces fit for an SME-focused provider even where automation potential is substantial. Consider only a realistic, narrow delivery scope.');
- if (coverageUnknown) reasons.push('Current vendor coverage or remaining scope is unverified; establish this before proposing a project.');
- return { customerFit: { score: fit, segment, sizeBasis: count === null ? 'unknown' : 'sourced employee count', reasons: fitReasons, evidence: context.evidence }, automationOpportunity: { score: strength, reasons: ['Strongest evidence-constrained opportunity score; this measures automation potential, not customer fit or buying intent.'], evidence: [...new Set(report.automationOpportunities.flatMap(o => o.evidence))] }, commercialAttractiveness: { score: commercial, reasons, evidence: [...new Set([...currentNeeds.map(f => f.id), ...candidates.flatMap(o => o.evidence)])] }, recommendation: fit === null || report.identity.status !== 'confirmed' ? 'insufficient_evidence' : (commercial ?? 0) >= 65 ? 'prioritize' : segment === 'enterprise' || (commercial ?? 0) < 20 ? 'deprioritize' : 'discovery_only', scoringMethod: 'v2: explicit SME-fit rubric; opportunity dimension mean constrained by evidence strength/confidence; commercial score combines eligible strength and current need, capped by fit and adjusted for partner uncertainty. Unknown fit stays null.' };
+ const identified = report.identity.status === 'confirmed';
+ const relevant = context.businessModelRelevance === 'high';
+ const workflows = report.evidence.filter(f => f.verification !== 'unknown' && f.categories.some(c => ['operations','technology','hiring','financials'].includes(c)));
+ const systems = report.existingAutomation.length > 0 || report.technologySignals.length > 0;
+ const growth = report.growthSignals.length > 0;
+ const needs = report.evidence.filter(f => isCurrentNeed(f, now));
+ const bestProposal = Math.max(0, ...report.automationOpportunities.map(o => o.score));
+ // Score the reason to start a conversation, not the probability of a signed deal.
+ const fit = identified ? Math.min(95, 40 + ({high:25,medium:15,low:0,unknown:10}[context.businessModelRelevance]) + ({suitable:10,narrow_pilot_only:5,unsuitable:-10,unknown:5}[context.deliverySuitability]) + (segment === 'enterprise' ? 10 : segment === 'unknown' ? 10 : 20)) : null;
+ const contextualPotential = identified ? Math.min(75, 20 + Math.min(30,workflows.length*6) + (systems?10:0) + (growth?5:0) + (relevant?10:0)) : 0;
+ const potential = Math.max(bestProposal,contextualPotential);
+ const timing = 40 + (needs.length?35:0) + (growth?15:0);
+ const covered = report.automationOpportunities.length > 0 && report.automationOpportunities.every(o=>o.existingSolutionAssessment.status==='already_addressed');
+ const commercial = fit === null ? null : Math.max(10,Math.min(95,Math.round(fit*.4+potential*.4+timing*.2)-(covered?8:0)));
+ return {
+ customerFit:{score:fit,segment,sizeBasis:count===null?'size unconfirmed; relevance still assessed':'reported headcount',reasons:[relevant?'Strong alignment with Velho’s software, integration and automation services.':context.relevanceExplanation,segment==='enterprise'?'Larger companies remain approachable through a focused pilot or departmental project.':'Company size supports discovery; missing headcount is not a rejection.',context.deliveryExplanation],evidence:context.evidence},
+ automationOpportunity:{score:potential,reasons:[workflows.length?`${workflows.length} operational, system, finance or hiring signals create useful automation discussion points.`:'General business relevance creates a starting point for discovery.',needs.length?'Specific current needs strengthen this score.':'This is potential to investigate, not a claim that an unverified problem exists.'],evidence:[...new Set([...workflows.map(f=>f.id),...report.automationOpportunities.flatMap(o=>o.evidence)])]},
+ commercialAttractiveness:{score:commercial,reasons:[commercial!==null&&commercial>=60?'Worth approaching with a specific discovery conversation.':'A focused introductory conversation can clarify scope and timing.',systems?'Existing systems and partners can support integration or complementary projects.':'Confirm systems, decision-maker and a realistic first project.',covered?'Some proposed work is already covered; focus the conversation on remaining scope.':'Public evidence of a buying trigger is helpful, but not required to be approachable.'],evidence:[...new Set([...context.evidence,...needs.map(f=>f.id)])]},
+ recommendation:!identified?'insufficient_evidence':commercial!==null&&commercial>=75?'prioritize':commercial!==null&&commercial>=40?'discovery_only':'deprioritize',
+ scoringMethod:'Discovery priority: fit credits relevance, feasible scope and company size; automation potential credits documented workflows and systems; outreach score = 40% fit + 40% potential + 20% timing. No public pain point does not mean no opportunity. Scores are heuristics, not buying probabilities.'
+ };
 }
 export function refreshQualification(report: CompanyResearch, now = new Date()) {
  // Headcount can refer to a group, LinkedIn profiles, a subsidiary, or another year.

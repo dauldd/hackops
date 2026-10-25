@@ -1,0 +1,36 @@
+import { ValidationError, validateStructuredValue, type Schema } from '../research/schema.ts';
+export const textSchema: Schema = {type:'string',minLength:1,maxLength:8000};
+export const numSchema: Schema = {type:'number',minimum:0,maximum:1e12};
+export const nullableNumber: Schema = {type:['number','null']};
+export const list = (items:Schema):Schema=>({type:'array',items,maxItems:200});
+export const object = (properties:Record<string,Schema>):Schema=>({type:'object',properties,required:Object.keys(properties),additionalProperties:false});
+export const enumeration=(values:readonly string[]):Schema=>({type:'string',enum:[...values]});
+export const inputKeys=['monthlyVolume','currentMinutes','automatedMinutes','automationRate','adoptionRate','reviewRate','reviewMinutes','hourlyCost','implementationCost','monthlyOperatingCost','cashRealizationRate','annualGrowthRate','monthlyHoursPerEmployee'] as const;
+export type InputKey=typeof inputKeys[number];
+export type QuantitativeInput={value:number|null;unit:string;classification:'verified'|'assumption'|'unknown';origin:'research'|'company'|'scenario';sourceReferences:string[];explanation:string};
+export type Inputs=Record<InputKey,QuantitativeInput>;
+export interface Proposal {id:string;title:string;process:string;problem:string|null;proposedSolution:string;evidence:string[];currentWorkflow:string[];proposedWorkflow:string[];currentWorkflowStatus:'observed'|'hypothesized'|'unknown';inputs?:Partial<Inputs>}
+export const proposalSchema=object({id:textSchema,title:textSchema,process:textSchema,problem:{type:['string','null']},proposedSolution:textSchema,evidence:list(textSchema),currentWorkflow:list(textSchema),proposedWorkflow:list(textSchema),currentWorkflowStatus:enumeration(['observed','hypothesized','unknown'])});
+export const chartTypes=['bar','line','area','waterfall','pie','donut','sankey','flowchart','heatmap','kpi','table'] as const;
+export type ChartType=typeof chartTypes[number];
+export type Cartesian={labels:string[];series:{name:string;values:(number|null)[]}[];xLabel:string;yLabel:string};
+export type Flow={nodes:{id:string;label:string;kind:'manual'|'automated'|'human_review'|'system'}[];edges:{from:string;to:string;label:string}[];status:'observed'|'hypothesized'|'proposed'};
+export interface ChartDataMap {bar:Cartesian;line:Cartesian;area:Cartesian;waterfall:Cartesian;pie:{segments:{label:string;value:number}[]};donut:{segments:{label:string;value:number}[]};sankey:{nodes:{id:string;label:string}[];links:{from:string;to:string;value:number}[]};flowchart:Flow;heatmap:{xLabels:string[];yLabels:string[];values:(number|null)[][];xLabel:string;yLabel:string};kpi:{value:number|null;comparison:number|null;label:string};table:{columns:string[];rows:(string|number|null)[][]}}
+export type Classification='verified'|'derived'|'illustrative'|'mixed';
+export interface ChartBase{id:string;title:string;description:string;units:string|null;assumptions:string[];sourceReferences:string[];evidenceClassification:Classification;keyInsight:string;sellingPoint:string;suggestedSlideTitle:string;calculationMethods:string[];inputReferences:InputKey[];scenarioLabel:string}
+export type BusinessVisualization = {[K in ChartType]:ChartBase&{chartType:K;data:ChartDataMap[K]}}[ChartType];
+const series=list(object({name:textSchema,values:list(nullableNumber)}));
+const cartesian=object({labels:list(textSchema),series,xLabel:textSchema,yLabel:textSchema});
+const segment=object({segments:list(object({label:textSchema,value:numSchema}))});
+export const chartDataSchemas:Record<ChartType,Schema>={bar:cartesian,line:cartesian,area:cartesian,waterfall:cartesian,pie:segment,donut:segment,sankey:object({nodes:list(object({id:textSchema,label:textSchema})),links:list(object({from:textSchema,to:textSchema,value:numSchema}))}),flowchart:object({nodes:list(object({id:textSchema,label:textSchema,kind:enumeration(['manual','automated','human_review','system'])})),edges:list(object({from:textSchema,to:textSchema,label:{type:'string'}})),status:enumeration(['observed','hypothesized','proposed'])}),heatmap:object({xLabels:list(textSchema),yLabels:list(textSchema),values:list(list(nullableNumber)),xLabel:textSchema,yLabel:textSchema}),kpi:object({value:nullableNumber,comparison:nullableNumber,label:textSchema}),table:object({columns:list(textSchema),rows:list(list({type:['string','number','null']}))})};
+export interface Metrics {currentMonthlyHours:number;automatedMonthlyHours:number;monthlyHoursReleased:number;annualHoursReleased:number;workloadReductionPct:number;currentTasksPerHour:number|null;automatedTasksPerHour:number|null;currentAnnualLaborValue:number|null;automatedAnnualLaborValue:number|null;annualCapacityValue:number|null;annualCashBenefit:number|null;annualNetCashBenefit:number|null;firstYearNetBenefit:number|null;roiPct:number|null;paybackMonths:number|null;timeline:{month:number;benefit:number|null;cost:number|null;net:number|null}[];outlook:{year:number;grossCapacityValue:number|null;cashBenefit:number|null;operatingCost:number|null;investment:number|null;netBenefit:number|null;cumulativeNet:number|null}[]}
+export interface Scenario{name:'conservative'|'base'|'optimistic';label:string;inputs:Inputs;metrics:Metrics;assumptions:string[]}
+export interface BusinessCase {proposal:Proposal;inputs:Inputs;scenarios:Scenario[];charts:BusinessVisualization[];missingInputs:{key:InputKey;question:string}[];notes:string[]}
+export interface VisualizationReport {schemaVersion:1;researchId:number;companyName:string;createdAt:string;status:'ready'|'needs_proposal';proposalOrigin:'provided'|'research_opportunities'|'none';businessCases:BusinessCase[];limitations:string[];model:string|null}
+export function validateChart(chart:BusinessVisualization){
+ validateStructuredValue(chart,object({id:textSchema,title:textSchema,description:textSchema,chartType:enumeration(chartTypes),data:chartDataSchemas[chart.chartType],units:{type:['string','null']},assumptions:list(textSchema),sourceReferences:list(textSchema),evidenceClassification:enumeration(['verified','derived','illustrative','mixed']),keyInsight:textSchema,sellingPoint:textSchema,suggestedSlideTitle:textSchema,calculationMethods:list(textSchema),inputReferences:list(enumeration(inputKeys)),scenarioLabel:textSchema}));
+ if(['bar','line','area','waterfall'].includes(chart.chartType)){const d=chart.data as Cartesian;if(!d.labels.length||!d.series.length||d.series.some(s=>s.values.length!==d.labels.length))throw new ValidationError('Chart series/axis lengths differ.');}
+ if(chart.chartType==='heatmap'&&(chart.data.values.length!==chart.data.yLabels.length||chart.data.values.some(row=>row.length!==chart.data.xLabels.length)))throw new ValidationError('Heatmap dimensions differ.');
+ if(chart.chartType==='flowchart'||chart.chartType==='sankey'){const ids=new Set(chart.data.nodes.map(n=>n.id));if(ids.size!==chart.data.nodes.length)throw new ValidationError('Duplicate diagram node.');const edges=chart.chartType==='flowchart'?chart.data.edges:chart.data.links;if(edges.some(e=>!ids.has(e.from)||!ids.has(e.to)))throw new ValidationError('Diagram has an unknown node.');}
+ if((chart.evidenceClassification==='illustrative'||chart.evidenceClassification==='mixed')&&!chart.assumptions.length)throw new ValidationError('Scenario assumptions must be visible.');
+}

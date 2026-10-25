@@ -91,18 +91,18 @@ export interface CompanyResearch extends ResearchInput {
 }
 
 export class ValidationError extends Error {}
-function validate(value: unknown, schema: Schema, path = 'report'): void {
+export function validateStructuredValue(value: unknown, schema: Schema, path = 'report'): void {
  const types = Array.isArray(schema.type) ? schema.type : [schema.type];
  const type = value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value;
  if (!types.includes(type) && !(type === 'number' && Number.isInteger(value) && types.includes('integer'))) throw new ValidationError(`${path}: invalid type`);
  if (value === null) return;
  if (typeof value === 'string' && (value.trim().length < (schema.minLength ?? 0) || value.length > (schema.maxLength ?? Infinity) || (schema.enum && !schema.enum.includes(value)))) throw new ValidationError(`${path}: invalid text`);
  if (typeof value === 'number' && (!Number.isFinite(value) || value < (schema.minimum ?? -Infinity) || value > (schema.maximum ?? Infinity))) throw new ValidationError(`${path}: invalid number`);
- if (Array.isArray(value)) { if (value.length > (schema.maxItems ?? Infinity)) throw new ValidationError(`${path}: too many items`); value.forEach((v, i) => validate(v, schema.items!, `${path}[${i}]`)); }
+ if (Array.isArray(value)) { if (value.length > (schema.maxItems ?? Infinity)) throw new ValidationError(`${path}: too many items`); value.forEach((v, i) => validateStructuredValue(v, schema.items!, `${path}[${i}]`)); }
  else if (typeof value === 'object') {
  const record = value as Record<string, unknown>;
  for (const key of schema.required ?? []) if (!(key in record)) throw new ValidationError(`${path}.${key}: required`);
- for (const key of Object.keys(record)) { if (!schema.properties?.[key]) throw new ValidationError(`${path}.${key}: unexpected field`); validate(record[key], schema.properties[key], `${path}.${key}`); }
+ for (const key of Object.keys(record)) { if (!schema.properties?.[key]) throw new ValidationError(`${path}.${key}: unexpected field`); validateStructuredValue(record[key], schema.properties[key], `${path}.${key}`); }
  }
 }
 export function safeUrl(value: string): string {
@@ -172,7 +172,7 @@ export function parseResearch(value: unknown, now = new Date()): CompanyResearch
  };
  reconcileEnums(input, researchSchema, 'report');
  }
- validate(cloned, modern ? researchSchema : legacyResearchSchema);
+ validateStructuredValue(cloned, modern ? researchSchema : legacyResearchSchema);
  return normalizeResearch(cloned, now, !modern);
 }
 /** Upgrade saved v1 reports conservatively without changing their research timestamp or database row. */

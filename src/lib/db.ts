@@ -5,6 +5,8 @@ import { DatabaseSync } from "node:sqlite";
 
 import { readStoredResearch, type CompanyResearch } from "./research/schema.ts";
 
+import type { VisualizationReport } from "./visualization/schema.ts";
+
 export type Note = { id: number; body: string; created_at: string };
 
 const globalDb = globalThis as typeof globalThis & { sqlite?: DatabaseSync };
@@ -49,6 +51,14 @@ function database() {
         created_at TEXT NOT NULL
       );
       CREATE INDEX IF NOT EXISTS research_logs_run_id ON research_logs(run_id, id);
+      CREATE TABLE IF NOT EXISTS company_visualizations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        research_id INTEGER NOT NULL REFERENCES company_research(id),
+        run_id TEXT NOT NULL REFERENCES research_runs(id),
+        report TEXT NOT NULL CHECK(json_valid(report)),
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS visualizations_research_id ON company_visualizations(research_id, id);
       CREATE TABLE IF NOT EXISTS notes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         body TEXT NOT NULL CHECK(length(body) BETWEEN 1 AND 1000),
@@ -107,4 +117,15 @@ export function getResearchRun(runId: string, after = 0) {
 export type ResearchRunSummary = { id: string; companyName: string; status: string; reportId: number | null; error: string | null; createdAt: string; updatedAt: string };
 export function listResearchRuns(): ResearchRunSummary[] {
  return database().prepare("SELECT id, company_name AS companyName, status, report_id AS reportId, error, created_at AS createdAt, updated_at AS updatedAt FROM research_runs ORDER BY created_at DESC LIMIT 100").all().map(row => ({ ...row })) as ResearchRunSummary[];
+}
+
+export type SavedVisualization = { id: number; researchId: number; runId: string; report: VisualizationReport; createdAt: string };
+export function insertVisualization(researchId: number, report: VisualizationReport, runId: string): SavedVisualization {
+ const result=database().prepare("INSERT INTO company_visualizations (research_id, run_id, report, created_at) VALUES (?, ?, ?, ?)").run(researchId,runId,JSON.stringify(report),report.createdAt);
+ return {id:Number(result.lastInsertRowid),researchId,runId,report,createdAt:report.createdAt};
+}
+export function listVisualizations(researchId:number){return database().prepare("SELECT id, research_id AS researchId, run_id AS runId, created_at AS createdAt, json_extract(report, '$.status') AS status FROM company_visualizations WHERE research_id = ? ORDER BY id DESC LIMIT 30").all(researchId).map(row=>({...row})) as {id:number;researchId:number;runId:string;createdAt:string;status:string}[];}
+export function getVisualization(id:number):SavedVisualization|null{
+ const row=database().prepare("SELECT id, research_id AS researchId, run_id AS runId, created_at AS createdAt, report FROM company_visualizations WHERE id = ?").get(id) as (Omit<SavedVisualization,'report'>&{report:string})|undefined;
+ return row?{...row,report:JSON.parse(row.report) as VisualizationReport}:null;
 }
