@@ -31,7 +31,7 @@ export interface LegacyCompanyResearch {
  automationOpportunities: LegacyAutomationOpportunity[]; researchStatus?: 'complete' | 'partial' | 'identity_unresolved';
  overallScore: number; executiveSummary: string; limitations: string[]; researchCoverage: { category: string; queries: string[]; outcome: string }[]; researchedAt: string;
 }
-export const evidenceCategories = ['overview', 'hiring', 'growth', 'technology', 'operations', 'financials'] as const;
+export const evidenceCategories = ['identity', 'overview', 'hiring', 'growth', 'technology', 'operations', 'financials', 'competition'] as const;
 export type EvidenceCategory = typeof evidenceCategories[number];
 export type Verification = 'verified' | 'inferred' | 'unknown';
 export type EvidenceStatus = 'current' | 'ongoing' | 'completed' | 'closed' | 'historical' | 'unknown';
@@ -43,7 +43,7 @@ const evidenceMetadata = {
  signalType: choice(['manual_work','integration_requirement','operational_problem','workload_growth','existing_solution','job_responsibility','company_context']), unmetNeedEvidence: nullable,
 };
 const opportunityMetadata = {
- implementationApproach: choice(['workflow','integration','ai','custom_software']), simplicityRationale: str,
+ implementationApproach: choice(['workflow','integration','ai','custom_software','discovery']), simplicityRationale: str,
  existingSolutionAssessment: object({ status: choice(['unmet','partially_addressed','already_addressed','unknown']), evidence: strings, rationale: str }),
 };
 const gapSchema = object({ id: str, category: str, question: str, reason: str, priority: choice(['high','medium','low']), evidence: strings });
@@ -66,7 +66,7 @@ export interface ResearchFinding extends LegacyResearchFinding {
  freshness?: 'recent' | 'historical' | 'undated' | 'future'; observedAt?: string;
 }
 export interface AutomationOpportunity extends LegacyAutomationOpportunity {
- implementationApproach: 'workflow' | 'integration' | 'ai' | 'custom_software'; simplicityRationale: string;
+ implementationApproach: 'workflow' | 'integration' | 'ai' | 'custom_software' | 'discovery'; simplicityRationale: string;
  existingSolutionAssessment: { status: 'unmet' | 'partially_addressed' | 'already_addressed' | 'unknown'; evidence: string[]; rationale: string };
  evidenceStrength?: 'direct_need' | 'documented_work' | 'context_only' | 'insufficient'; validationNotes?: string[];
 }
@@ -109,8 +109,49 @@ export function safeUrl(value: string): string {
 }
 export function parseResearch(value: unknown, now = new Date()): CompanyResearch {
  const modern = Boolean(value && typeof value === 'object' && 'evidence' in value);
- validate(value, modern ? researchSchema : legacyResearchSchema);
- return normalizeResearch(structuredClone(value) as ResearchInput | LegacyCompanyResearch, now, !modern);
+ const cloned = structuredClone(value) as ResearchInput | LegacyCompanyResearch;
+ if (modern) {
+ const input = cloned as ResearchInput;
+ // Category arrays are derived indexes. Normalize a provider's legacy-shaped entries
+ // only by linking an already-retained canonical source; never invent a new record.
+ for (const field of ['hiringSignals','growthSignals','technologySignals','operationalSignals'] as const) {
+ const supplied = input[field] as unknown[];
+ if (!Array.isArray(supplied) || !Array.isArray(input.evidence)) continue;
+ input[field] = supplied.flatMap(entry => {
+ if (typeof entry === 'string') return [entry];
+ if (!entry || typeof entry !== 'object') return [];
+ const candidate = entry as { id?: string; sourceUrl?: string };
+ const matches = input.evidence.filter(f => f.id === candidate.id || (candidate.sourceUrl && f.sourceUrl === candidate.sourceUrl));
+ if (Array.isArray(input.limitations)) input.limitations.push(`A legacy-shaped ${field} entry was resolved only against retained evidence. Unsupported category content was withheld.`);
+ return matches.map(f => f.id);
+ });
+ }
+ }
+ if (modern) {
+ const input = cloned as ResearchInput;
+ const reconcileEnums = (value: unknown, schema: Schema, path: string): unknown => {
+ if (typeof value === 'string' && schema.enum && !schema.enum.includes(value)) {
+ const aliases: Record<string,string> = { finance: 'financials', financial: 'financials', operational: 'operations', recruitment: 'hiring', competitors: 'competition', vendors: 'competition', verified_fact: 'verified' };
+ const alias = aliases[value.toLocaleLowerCase('en')];
+ // Aliases only reconcile category names. Verification/confidence must never be upgraded.
+ const replacement = path.includes('.categories[') || path.endsWith('.category') ? (alias && schema.enum.includes(alias) ? alias : undefined) : undefined;
+ const fallback = replacement ?? ['unknown','other','company_context','low','discovery'].find(candidate => schema.enum!.includes(candidate));
+ if (fallback !== undefined) {
+ if (Array.isArray(input.limitations)) input.limitations.push(`Unrecognized ${path} value (${value.slice(0,120)}) was normalized to ${fallback}; no stronger factual status or confidence was assumed.`);
+ return fallback;
+ }
+ }
+ if (Array.isArray(value) && schema.items) return value.map((item,i) => reconcileEnums(item,schema.items!,`${path}[${i}]`));
+ if (value && typeof value === 'object' && schema.properties) {
+ const record = value as Record<string, unknown>;
+ for (const [key, child] of Object.entries(schema.properties)) if (key in record) record[key] = reconcileEnums(record[key],child,`${path}.${key}`);
+ }
+ return value;
+ };
+ reconcileEnums(input, researchSchema, 'report');
+ }
+ validate(cloned, modern ? researchSchema : legacyResearchSchema);
+ return normalizeResearch(cloned, now, !modern);
 }
 /** Upgrade saved v1 reports conservatively without changing their research timestamp or database row. */
 export function readStoredResearch(value: unknown): CompanyResearch {
@@ -127,4 +168,14 @@ export function readStoredResearch(value: unknown): CompanyResearch {
 export function parseCompanyName(value: unknown): string {
  if (typeof value !== 'string' || !value.trim() || value.trim().length > 200 || /[\x00-\x1f]/.test(value)) throw new ValidationError('Enter a company name between 1 and 200 characters.');
  return value.trim();
+}
+/** Compatibility adapter for downstream consumers that still expect v1 category records. */
+export function toLegacyResearch(report: CompanyResearch): LegacyCompanyResearch {
+ const record: Record<string, unknown> = Object.fromEntries(Object.keys(legacyResearchSchema.properties!).map(key => [key, report[key as keyof CompanyResearch]]));
+ const catalogue = new Map(report.evidence.map(f => [f.id, f]));
+ const project = (value: object, keys: string[]) => Object.fromEntries(keys.map(key => [key, (value as Record<string, unknown>)[key]]));
+ for (const field of ['hiringSignals','growthSignals','technologySignals','operationalSignals'] as const) record[field] = report[field].map(id => project(catalogue.get(id)!, Object.keys(finding.properties!)));
+ record.automationOpportunities = report.automationOpportunities.map(o => project(o, Object.keys(legacyResearchSchema.properties!.automationOpportunities.items!.properties!)));
+ record.researchCoverage = report.researchCoverage.filter(c => c.category !== 'competition');
+ return { ...record, researchedAt: report.researchedAt, researchStatus: report.researchStatus } as unknown as LegacyCompanyResearch;
 }

@@ -94,3 +94,16 @@ test('category indexes are safely regenerated when model uses IDs absent from it
  const f=input();f.hiringSignals=['hs-missing'];f.growthSignals=['gs-missing'];
  const r=parseResearch(raw(f),now);assert.deepEqual(r.hiringSignals,['job']);assert.deepEqual(r.growthSignals,[]);assert.ok(r.limitations.some(l=>l.includes('hiringSignals')));assert.ok(r.limitations.some(l=>l.includes('growthSignals')));
 });
+test('identity and competition are valid source categories, separate from category indexes',()=>{
+ const f=input();f.evidence[0].categories.push('identity','competition');const r=parseResearch(raw(f),now);assert.ok(r.evidence[0].categories.includes('identity'));assert.ok(r.evidence[0].categories.includes('competition'));
+});
+test('legacy-shaped category entries only link retained evidence and cannot inject a source',()=>{
+ const f=raw() as unknown as Record<string,unknown>;f.hiringSignals=[{id:'job',title:'Existing fact'}];f.growthSignals=[{id:'invented',sourceUrl:'https://invalid.example/made-up'}];const r=parseResearch(f,now);assert.deepEqual(r.hiringSignals,['job']);assert.deepEqual(r.growthSignals,[]);assert.equal(r.evidence.length,1);assert.ok(r.limitations.some(l=>l.includes('legacy-shaped')));
+});
+test('downstream v1 adapter restores category records while retaining validated confidence and scores',async()=>{
+ const {toLegacyResearch}=await import('../src/lib/research/schema.ts');const report=parseResearch(raw(),now);const legacy=toLegacyResearch(report);assert.equal(legacy.hiringSignals[0].id,'job');assert.equal(legacy.hiringSignals[0].sourceUrl,report.evidence[0].sourceUrl);assert.equal(legacy.overallScore,report.overallScore);assert.equal(legacy.automationOpportunities[0].confidence,report.automationOpportunities[0].confidence);assert.equal(legacy.researchedAt,report.researchedAt);
+});
+test('provider enum drift is reconciled conservatively rather than discarding a sourced report',()=>{
+ const f=raw() as unknown as Record<string,unknown>;const opportunities=f.automationOpportunities as {existingSolutionAssessment:{status:string};confidence:string}[];opportunities[0].existingSolutionAssessment.status='potential_gap';opportunities[0].confidence='very high';
+ const r=parseResearch(f,now);assert.equal(r.automationOpportunities[0].existingSolutionAssessment.status,'unknown');assert.equal(r.automationOpportunities[0].confidence,'low');assert.ok(r.limitations.some(l=>l.includes('normalized to unknown')));
+});
