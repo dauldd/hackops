@@ -1,0 +1,313 @@
+{
+  "companyName": "Posti Oyj",
+  "website": "https://www.posti.fi",
+  "identity": {
+    "status": "confirmed",
+    "explanation": "Posti Oyj is the main Finnish postal service delivering mail and parcels in Finland, as confirmed by its official website, LinkedIn profile, and Wikipedia. It is owned by the Government of Finland.",
+    "sourceUrls": [
+      "http://www.posti.fi",
+      "https://linkedin.com/company/posti",
+      "https://en.wikipedia.org/wiki/Posti_Group"
+    ]
+  },
+  "overview": {
+    "description": "Posti Group Oyj (formerly Suomen Posti and Itella) is the primary Finnish postal service, delivering mail and parcels in Finland. Internationally, it operates as Posti Group Corporation and is a leading delivery and fulfillment company across the Nordic and Baltic countries. The company connects people and businesses by delivering information, emotions, and goods. Posti is undergoing a digital transformation, including modernizing its financial technology platform and leveraging AI and automation.",
+    "industry": "Postal service, Logistics, Supply Chain, Storage, Financial process automation",
+    "headquarters": "Helsinki, Finland",
+    "employeeCount": 13700,
+    "businessModel": "Posti Group operates as a logistics and delivery service provider for both business-to-business (B2B) and business-to-consumer (B2C) segments, offering postal services, parcel and freight delivery, warehousing, and in-house logistics. It also provides financial process automation services.",
+    "productsAndServices": [
+      "Mail delivery",
+      "Parcel delivery (e-commerce, B2B, B2C, C2C)",
+      "Freight services",
+      "Warehousing",
+      "In-house logistics",
+      "E-commerce services",
+      "Marketing and data services",
+      "Staffing solutions (logistics personnel)",
+      "Financial process automation"
+    ],
+    "customerSegments": [
+      "Consumers",
+      "Businesses (e-commerce, transport, industrial customers)",
+      "Public administration"
+    ],
+    "geographicOperations": [
+      "Finland",
+      "Sweden",
+      "Baltic countries",
+      "Nordic countries"
+    ],
+    "businessStructure": "Posti Group Oyj is a public company owned by the State of Finland.",
+    "sourceUrls": [
+      "https://www.posti.fi/en/for-businesses/our-services",
+      "https://www.posti.com/en/corporate/posti-business",
+      "https://linkedin.com/company/posti",
+      "https://en.wikipedia.org/wiki/Posti_Group",
+      "https://www.posti.com/en/careers"
+    ]
+  },
+  "hiringSignals": [],
+  "growthSignals": [
+    {
+      "id": "growth_1",
+      "title": "Digital Transformation and AI Experts Recruitment",
+      "description": "Posti is evolving and its transformation is built by a diverse pool of professionals from postal employees to digital developers and artificial intelligence experts, indicating a strategic focus on digital growth.",
+      "sourceUrl": "https://linkedin.com/company/posti",
+      "sourceDate": "2026-10-08",
+      "confidence": "high",
+      "sourceExcerpt": "Posti is evolving and its transformation is built by a diverse pool of professionals from postal employees to digital developers and artificial intelligence experts."
+    },
+    {
+      "id": "growth_2",
+      "title": "International Career Opportunities and Expansion",
+      "description": "Posti offers a wide range of positions in Finland and abroad, including in Sweden and the Baltic countries, highlighting its international operations and potential for continued expansion.",
+      "sourceUrl": "https://www.posti.com/en/careers",
+      "sourceDate": null,
+      "confidence": "high",
+      "sourceExcerpt": "We offer a wide range of positions in Finland and abroad: experts from different fields can also find employment in our business operations in Sweden and the Balti developers and artificial intelligence experts. As a large company, we offer an extensive range of opportunities – including internationally."
+    }
+  ],
+  "technologySignals": [
+    {
+      "id": "tech_1",
+      "title": "SAP S/4HANA Implementation for Finance",
+      "description": "Posti has selected Tietoevry as its SAP S/4HANA transformation partner to modernize its current financial technology platform, aiming for increased automation for financial processes.",
+      "sourceUrl": "https://www.tietoevry.com/en/newsroom/all-news-and-releases/press-releases/2022/01/posti-selects-tietoevry-as-its-sap-s4hana-transformation-partner/",
+      "sourceDate": "2022-01-25",
+      "confidence": "high",
+      "sourceExcerpt": "The Finnish Posti Group is accelerating its digital transformation with Tietoevry by implementing SAP S/4HANA on public cloud... Under the contract, we will provide a new standardized Finance ERP for all Posti Group companies, with increased automation for financial processes."
+    },
+    {
+      "id": "tech_2",
+      "title": "Workday for HR Processes and ESG Data",
+      "description": "Posti has been using Workday since 2019 for its HR processes and as a major source of its environmental, social and governance (ESG) and GRI data.",
+      "sourceUrl": "https://www.workday.com/en-se/customer-stories/i-p/creating-a-unified-culture-through-support-of-the-right-platform.html",
+      "sourceDate": null,
+      "confidence": "high",
+      "sourceExcerpt": "Posti had been using Workday since 2019, and has lately used it as a major source of its environmental, social and governance (ESG) and GRI data, as well as its diversity, equity and inclusion."
+    },
+    {
+      "id": "tech_3",
+      "title": "Infor CloudSuite WFM for Workforce Management",
+      "description": "Posti began migrating to Infor CloudSuite WFM (Workforce Management) in 2020, to simplify shift planning, offer improved user experience including mobile access, and decrease running costs for over 22,000 employees in Finland.",
+      "sourceUrl": "https://www.infor.com/news/posti-takes-to-infor-cloud",
+      "sourceDate": "2020-09-01",
+      "confidence": "high",
+      "sourceExcerpt": "Infor, a global leader in business cloud software specialized by industry, today announced that Finnish postal and logistics leader Posti has begun its migration to Infor CloudSuite WFM (Workforce Management)... The cloud-based application will cover more than 22,000 employees in Finland."
+    },
+    {
+      "id": "tech_4",
+      "title": "Infosys Cobalt for Digitization and Innovation",
+      "description": "Posti selected Infosys as their digitization and innovation partner, leveraging Infosys Cobalt's transformative services to become a cloud-first organization and creating a mobile app using the Infosys Enterprise Gamification Platform (iEGP) for employee engagement.",
+      "sourceUrl": "https://www.infosys.com/navigate-your-next/tales-of-transformation/track-adapt-reinvent.html",
+      "sourceDate": null,
+      "confidence": "high",
+      "sourceExcerpt": "While they chose UiPath as their Robotic Process Automation (RPA) partner, Infosys was selected as their digitization and innovation partner. Posti became a cloud-first organization using Infosys Cobalt's numerous transformative services."
+    },
+    {
+      "id": "tech_5",
+      "title": "Key User Role for Warehouse Management Systems",
+      "description": "A 'Key User' position exists at Posti, responsible for supporting and developing warehouse management systems, maintaining master data, warehouse configurations, and monitoring interfaces and electronic message flows between systems.",
+      "sourceUrl": "https://posti.wd3.myworkdayjobs.com/aditro_external/job/Key-User_R8519",
+      "sourceDate": null,
+      "confidence": "high",
+      "sourceExcerpt": "As a Key User, you are responsible for supporting and developing our warehouse management systems and related business applications... • System administration - maintaining master data, warehouse configurations, layouts, and supporting warehouse devices, printers, terminals, and related technologies... • Integrations and data flows - monitoring interfaces and electronic message flows between systems and identifying and resolving integration-related issues."
+    }
+  ],
+  "operationalSignals": [
+    {
+      "id": "op_1",
+      "title": "Process Manager, Finance Development Role",
+      "description": "A 'Process Manager, Finance Development' role at Posti involves participating in projects as an expert, system responsibility for SAP document circulation systems, and describing and developing processes.",
+      "sourceUrl": "https://linkedin.com/in/saijajankavaara",
+      "sourceDate": "2025-11-01",
+      "confidence": "high",
+      "sourceExcerpt": "Process Manager, Finance Development... taloushallinnon tiimissä, osallistuminen projekteihin asiantuntijana, SAP dokumenttien kierrätysjärjestelmän järjestelmävastuu, prosessien kuvaaminen ja kehittäminen, SAP ECC rollout-projektin"
+    },
+    {
+      "id": "op_2",
+      "title": "Logistics and Operations Management Career Path",
+      "description": "Posti Group has a defined career path for Logistics & Operations Management, with roles such as Operations Coordinator, Regional Manager, and Head of Logistics.",
+      "sourceUrl": "https://eujobs.co/career-guides/posti-group-oyj-career-guide",
+      "sourceDate": "2026-02-26",
+      "confidence": "medium",
+      "sourceExcerpt": "Logistics & Operations Management... Career Progression: Operations Coordinator → Regional Manager → Head of Logistics."
+    },
+    {
+      "id": "op_3",
+      "title": "Comprehensive Logistics Services for Businesses",
+      "description": "Posti provides a full range of logistics services for businesses, including parcels, letters, transportation, and storage, both in Finland and internationally, aiming to streamline operations.",
+      "sourceUrl": "https://www.posti.fi/en/for-businesses/our-services",
+      "sourceDate": null,
+      "confidence": "high",
+      "sourceExcerpt": "At Posti, you’ll find all the sending and receiving services your company needs for efficient logistics, from letters and parcels to storage and transportation."
+    }
+  ],
+  "financials": {
+    "revenue": 1447600000,
+    "currency": "EUR",
+    "financialYear": 2025,
+    "employeeCount": 13700,
+    "summary": "Posti Group Oyj's net sales in 2025 amounted to EUR 1,447.6 million, with approximately 13,700 employees. The company's net sales in 2024 were EUR 1,521.4 million and adjusted EBITDA was EUR 207.6 million. Posti expects its net sales and adjusted EBITDA in 2025 to be on the previous year's level.",
+    "sourceUrls": [
+      "https://www.posti.com/en/press-release-3730024",
+      "https://www.posti.com/en/news-and-releases/financial_statements_bulletin_2024"
+    ]
+  },
+  "automationOpportunities": [
+    {
+      "title": "Enhancing Financial Process Automation with SAP S/4HANA",
+      "description": "Posti is actively undergoing an SAP S/4HANA implementation to modernize its finance platform and increase automation in financial processes. This ongoing transformation presents a clear opportunity for further automation.",
+      "evidence": [
+        "tech_1",
+        "op_1"
+      ],
+      "relevantVelhoService": "AI tools, CRM/sales automation and enrichment, ERP integrations, Finance/accounting integrations",
+      "proposedSolution": "Velho can develop custom AI tools and automation workflows tailored to Posti’s new SAP S/4HANA environment. This could include automating invoice processing (OCR, data extraction, matching), expense report processing, general ledger reconciliation, and generating financial reports. Velho could also assist in optimizing data migration and ensuring seamless integration with other financial or operational systems.",
+      "businessValue": "Accelerated financial closing cycles, reduced manual errors in financial data, improved compliance, and cost savings through increased efficiency in financial operations. This would free up finance personnel for more analytical and strategic tasks.",
+      "confidence": "high",
+      "score": 90,
+      "scoreBreakdown": {
+        "relevance": 95,
+        "evidenceStrength": 95,
+        "businessImpact": 90,
+        "growth": 85,
+        "automationFit": 85
+      },
+      "scoreExplanation": "Very high relevance due to Posti’s explicit ongoing SAP S/4HANA implementation for automation. Strong evidence from press releases and job descriptions. High business impact on core financial processes. Supports growth by enabling more agile financial operations. High automation fit for repetitive and data-intensive financial tasks.",
+      "hypothesis": "Despite the SAP S/4HANA implementation, Posti may still have opportunities for Velho to apply advanced automation and AI within the new ERP system, particularly in areas like intelligent document processing for invoices and enhanced reconciliation processes, to maximize the benefits of their digital transformation.",
+      "discoveryQuestions": [
+        "What are the primary manual tasks remaining in finance after the initial SAP S/4HANA rollout?",
+        "Are there specific financial processes that are particularly time-consuming or error-prone?",
+        "How are documents currently handled within the SAP system, and what are the challenges with their circulation?",
+        "What are Posti's key performance indicators for financial process efficiency?"
+      ]
+    },
+    {
+      "title": "Optimizing Warehouse Management System Support and Development",
+      "description": "Posti has 'Key User' roles dedicated to supporting and developing warehouse management systems (WMS), including master data maintenance, configuration, and monitoring integrations. This indicates ongoing efforts and potential complexities in managing these critical systems.",
+      "evidence": [
+        "tech_5"
+      ],
+      "relevantVelhoService": "Custom software, AI tools, ERP integrations",
+      "proposedSolution": "Develop AI-powered tools for predictive maintenance of WMS, automated troubleshooting of common issues, and intelligent monitoring of data flows and integrations between the WMS and other enterprise systems. Velho could also provide custom software to streamline the configuration and master data management processes, reducing manual effort and potential for errors.",
+      "businessValue": "Reduced WMS downtime, faster resolution of operational issues, improved data accuracy, and increased efficiency for Key Users, allowing them to focus on strategic development rather than reactive support. This would enhance the overall reliability and performance of Posti's logistics operations.",
+      "confidence": "high",
+      "score": 86,
+      "scoreBreakdown": {
+        "relevance": 90,
+        "evidenceStrength": 90,
+        "businessImpact": 85,
+        "growth": 80,
+        "automationFit": 85
+      },
+      "scoreExplanation": "High relevance due to direct evidence of dedicated WMS support roles. Strong evidence from job description details. Significant business impact through improved operational efficiency in core logistics. Growth is supported by the continued need for efficient logistics. High automation fit for tasks like system monitoring, troubleshooting, and data management.",
+      "hypothesis": "Posti's reliance on Key Users for WMS support and development suggests potential for Velho to introduce AI tools and custom software to automate routine tasks, enhance system stability, and optimize data integrity and integrations within their logistics IT landscape.",
+      "discoveryQuestions": [
+        "What are the most frequent issues encountered by Key Users in WMS support?",
+        "How much time is currently spent on master data maintenance and system configuration for WMS?",
+        "What are the biggest challenges related to WMS integrations with other Posti systems?",
+        "Are there specific areas in WMS development where automation could accelerate deployment or improve quality?"
+      ]
+    },
+    {
+      "title": "Streamlining Logistics and Operations Administration",
+      "description": "Posti operates extensive logistics services, including parcel, freight, warehousing, and in-house logistics across multiple countries. This scale suggests a significant volume of administrative tasks related to order handling, shipment tracking, customer communication, and supplier coordination.",
+      "evidence": [
+        "op_3",
+        "growth_2"
+      ],
+      "relevantVelhoService": "CRM/sales automation and enrichment, Buyer signals, Outreach and follow-ups, Order/shipment and supplier workflows",
+      "proposedSolution": "Develop custom software and AI tools to automate various administrative tasks within logistics. This could include automated order processing from multiple channels, intelligent routing for customer inquiries, automated generation of shipping documents, streamlined supplier communication workflows, and real-time tracking updates integrated with customer-facing platforms. CRM enrichment and sales automation tools could also be implemented.",
+      "businessValue": "Increased operational efficiency, reduced administrative overhead, improved customer satisfaction through faster and more accurate responses, and better coordination with suppliers. This would support Posti's international growth by providing scalable administrative solutions.",
+      "confidence": "medium",
+      "score": 75,
+      "scoreBreakdown": {
+        "relevance": 80,
+        "evidenceStrength": 70,
+        "businessImpact": 80,
+        "growth": 75,
+        "automationFit": 70
+      },
+      "scoreExplanation": "Good relevance due to the extensive nature of Posti's logistics operations. Evidence is indirect, based on the scale of operations rather than explicit manual processes. High potential business impact by optimizing core logistics administration. Supports growth by enabling more efficient handling of increased volumes. Moderate automation fit, as specific manual tasks were not identified but are inferred from scale.",
+      "hypothesis": "Given the scale and international scope of Posti's logistics operations, it's probable that manual or semi-automated administrative tasks exist within order processing, customer communication, and supplier management. Velho can investigate these areas to identify specific opportunities for workflow automation and efficiency gains.",
+      "discoveryQuestions": [
+        "What are the most time-consuming administrative tasks for logistics and operations personnel?",
+        "How are customer orders currently processed and tracked end-to-end?",
+        "What systems are used for managing customer relationships and supplier interactions within logistics?",
+        "Are there any bottlenecks in the information flow between different operational departments or with external partners?"
+      ]
+    }
+  ],
+  "overallScore": 90,
+  "executiveSummary": "Posti Group Oyj is a well-established Finnish postal and logistics company with significant operations across the Nordic and Baltic regions. The company is actively investing in digital transformation, including the implementation of SAP S/4HANA for financial processes and leveraging Workday for HR. Posti offers a broad range of logistics services to businesses and consumers and is seeking to enhance its operational efficiency and customer experience. Key automation opportunities for Velho include optimizing warehouse management system support and development, enhancing financial process automation within SAP S/4HANA, and streamlining broader logistics and operations administration. These initiatives align with Posti's strategic focus on digital growth and can yield substantial benefits in efficiency, accuracy, and scalability.",
+  "limitations": [
+    "Specific details on the manual nature or inefficiencies of existing operational processes (e.g., explicit spreadsheet use, manual data entry volumes) beyond general descriptions were not found in the public information retrieved. Opportunities are based on logical inference from the company's scale and stated strategic direction.",
+    "The precise and most current employee count data showed some discrepancies across different sources; therefore, the provided number is an approximation from the most recent comprehensive annual report.",
+    "Information regarding the adoption or specific use of CRM systems (other than general mentions related to customer service and sales) or other specific ERP modules beyond SAP S/4HANA for finance was not explicitly detailed.",
+    "The provider did not report complete search/fetch usage. Research coverage is model-reported and could not be independently confirmed."
+  ],
+  "researchCoverage": [
+    {
+      "category": "identity",
+      "queries": [
+        "Posti Oyj official website Finland"
+      ],
+      "outcome": "Confirmed company identity and official website."
+    },
+    {
+      "category": "overview",
+      "queries": [
+        "Posti Oyj official website Finland"
+      ],
+      "outcome": "Gathered information on products, services, business model, headquarters, and geographic operations from the official website and LinkedIn."
+    },
+    {
+      "category": "hiring",
+      "queries": [
+        "Posti Group Oyj operations coordinator job description",
+        "Posti Group Oyj logistics administration job description",
+        "Posti Group Oyj customer service coordinator job description",
+        "Posti Group Oyj finance operations job description"
+      ],
+      "outcome": "Identified general career areas and a specific 'Key User' role, but no currently open, detailed job descriptions explicitly outlining manual work or specific tools were found for 'operations coordinator', 'logistics administration', 'customer service coordinator', or 'finance operations' that would directly reveal automation opportunities beyond general inferences. The 'Process Manager, Finance Development' role was found via a LinkedIn profile, not a job posting."
+    },
+    {
+      "category": "growth",
+      "queries": [
+        "Posti Group Oyj financial report 2025 2024",
+        "Posti Group Oyj annual report 2025 2024",
+        "Posti Group Oyj headcount 2025 2024"
+      ],
+      "outcome": "Identified statements regarding digital transformation, international expansion, and growth expectations from financial reports and career pages. Employee count showed a declining trend across recent years from different sources, but the official annual report provided a specific number for 2025."
+    },
+    {
+      "category": "technology",
+      "queries": [
+        "Posti Group Oyj technologies used CRM ERP"
+      ],
+      "outcome": "Found evidence of SAP S/4HANA, Workday, Infor CloudSuite WFM, and Infosys Cobalt usage. Also, a 'Key User' role for warehouse management systems was identified."
+    },
+    {
+      "category": "financials",
+      "queries": [
+        "Posti Group Oyj financial report 2025 2024",
+        "Posti Group Oyj annual report 2025 2024",
+        "Posti Group Oyj headcount 2025 2024"
+      ],
+      "outcome": "Obtained revenue and employee count data for 2025 and 2024 from official financial statements and annual reports. Noted some discrepancies in employee count reporting across different sources, but prioritized official annual report data."
+    },
+    {
+      "category": "operations",
+      "queries": [
+        "Posti Group Oyj operations coordinator job description",
+        "Posti Group Oyj logistics administration job description",
+        "Posti Group Oyj customer service coordinator job description",
+        "Posti Group Oyj finance operations job description"
+      ],
+      "outcome": "Identified general areas of operation (logistics, customer service, finance) and a 'Process Manager, Finance Development' role. Specific detailed operational processes indicating manual work were not explicitly found, but inferred from the scale of operations and technology deployments."
+    }
+  ],
+  "researchedAt": "2026-10-25T03:51:00.251Z"
+}

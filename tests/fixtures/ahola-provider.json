@@ -1,0 +1,549 @@
+{
+  "companyName": "Ahola Transport",
+  "website": "https://www.aholatransport.com/",
+  "identity": {
+    "status": "confirmed",
+    "explanation": "Ahola Transport is a Finnish family-run company, part of Ahola Group. Its legal name is Oyj Ahola Transport Abp.",
+    "sourceUrls": [
+      "https://www.aholatransport.com/",
+      "https://www.aholatransport.com/company",
+      "https://linkedin.com/company/ahola-transport",
+      "https://www.finder.fi/Kuljetusliike/Ahola+Transport/Kokkola/yhteystiedot/2113101",
+      "https://www.aholatransport.com/fi/ahola-transport/"
+    ]
+  },
+  "overview": {
+    "description": "Ahola Transport is a Finnish family-run company offering dynamic international transport and logistics services. They leverage digitalization to optimize transports and reduce emissions. They are part of the Ahola Group, which also includes Ahola Special (specialized transports) and Ahola Digital (in-house digital logistics solutions).",
+    "industry": "Road Transport and Logistics",
+    "headquarters": "Kokkola, Finland",
+    "employeeCount": 132,
+    "businessModel": "B2B logistics and transportation services, emphasizing digital solutions and a continuous chain of responsibility.",
+    "productsAndServices": [
+      "Road Transports",
+      "Specialized Transports (via Ahola Special)",
+      "Digital Logistics Solutions (via Ahola Digital)",
+      "Green Kilometers product"
+    ],
+    "customerSegments": [
+      "Nordic companies",
+      "Baltic companies",
+      "Central and Eastern European companies"
+    ],
+    "geographicOperations": [
+      "Nordic countries",
+      "Baltic countries",
+      "Central and Eastern Europe",
+      "Other European countries"
+    ],
+    "businessStructure": "Public Company (Oyj Abp), part of Ahola Group",
+    "sourceUrls": [
+      "https://www.aholatransport.com/",
+      "https://www.aholatransport.com/company",
+      "https://linkedin.com/company/ahola-transport",
+      "https://www.aholatransport.com/ahola-digital-the-in-house-technology-behind-transport/",
+      "https://www.finder.fi/Kuljetusliike/Ahola+Transport/Kokkola/yhteystiedot/2113101"
+    ]
+  },
+  "hiringSignals": [],
+  "growthSignals": [
+    "evidence-001",
+    "evidence-002",
+    "evidence-003"
+  ],
+  "technologySignals": [
+    "evidence-004",
+    "evidence-005",
+    "evidence-006",
+    "evidence-007",
+    "evidence-008",
+    "evidence-009",
+    "evidence-010"
+  ],
+  "operationalSignals": [
+    "evidence-004",
+    "evidence-005",
+    "evidence-006",
+    "evidence-007",
+    "evidence-008",
+    "evidence-009"
+  ],
+  "financials": {
+    "revenue": 145900000,
+    "currency": "EUR",
+    "financialYear": 2025,
+    "employeeCount": null,
+    "summary": "Ahola Group’s revenue grew to 145.9 million euros in 2025. This was a year of growth, development and renewal for the group.",
+    "sourceUrls": [
+      "https://www.aholatransport.com/gw_ahola_articles/ahola-groups-annual-review-2025-is-now-published",
+      "https://www.aholagroup.com/articles/ahola-groups-annual-review-2025-is-now-published/"
+    ]
+  },
+  "automationOpportunities": [
+    {
+      "title": "Streamlining ERP-related Administrative Tasks",
+      "description": "Ahola Transport relies on its in-house developed ERP system, Attracs, for real-time transport monitoring and operational processes. Despite the system's capabilities, there are often manual administrative tasks associated with ERP use, such as master data maintenance, reporting, and interface monitoring, that could benefit from automation to improve efficiency and reduce errors.",
+      "evidence": [
+        "evidence-004",
+        "evidence-005",
+        "evidence-006",
+        "evidence-007",
+        "evidence-008"
+      ],
+      "relevantVelhoService": "Sales and Operational Automation, CRM/ERP Integrations, Document/Finance Workflows",
+      "proposedSolution": "Implement robotic process automation (RPA) or custom workflow automation to handle repetitive administrative tasks within or related to the Attracs ERP system. This could include automated data entry, report generation, discrepancy detection, and alert management for system interfaces.",
+      "businessValue": "Increased operational efficiency, reduced manual errors, faster data processing, and freeing up staff for more strategic tasks.",
+      "confidence": "medium",
+      "score": 60,
+      "scoreBreakdown": {
+        "relevance": 70,
+        "evidenceStrength": 50,
+        "businessImpact": 70,
+        "growth": 60,
+        "automationFit": 80
+      },
+      "scoreExplanation": "Ahola Transport's strong emphasis on digitalization and in-house ERP development indicates a receptive environment for automation. While no explicit pain points were found, general administrative burdens related to ERP systems are common. The impact on efficiency and potential for reducing errors is significant. The company's growth could exacerbate manual data handling, making automation a relevant fit.",
+      "hypothesis": "Despite having an in-house ERP (Attracs), Ahola Transport likely experiences manual administrative overheads in managing data, monitoring system interfaces, or generating reports, creating an opportunity for workflow automation.",
+      "discoveryQuestions": [
+        "What are the most time-consuming manual administrative tasks associated with the Attracs ERP system?",
+        "Are there any recurring data entry or reconciliation issues between Attracs and other systems?",
+        "How are system interfaces and data flows monitored for anomalies or errors?",
+        "What kind of reporting is currently done manually using data from Attracs?"
+      ],
+      "implementationApproach": "workflow",
+      "simplicityRationale": "Starting with clearly defined, repetitive tasks within existing workflows would offer immediate value with minimal disruption, building on the company's established digital infrastructure.",
+      "existingSolutionAssessment": {
+        "status": "unknown",
+        "evidence": [
+          "evidence-004",
+          "evidence-005"
+        ],
+        "rationale": "Ahola Transport mentions ongoing development of Attracs and its role in real-time monitoring, but the extent to which administrative tasks around the ERP are already automated is unknown. This area could be a gap or an opportunity to enhance existing solutions."
+      }
+    },
+    {
+      "title": "Optimizing Transport Order and Information Flow Integration",
+      "description": "With extensive operations across Northern Europe and a focus on customized logistics solutions, Ahola Transport likely deals with complex information flows related to transport orders, pricing, estimated times, and tracking. Efficient integration between their internal systems (Attracs, Ahola Online concept) and external customer or partner platforms is crucial to avoid manual data re-entry or communication gaps.",
+      "evidence": [
+        "evidence-006",
+        "evidence-009",
+        "evidence-010"
+      ],
+      "relevantVelhoService": "CRM/ERP Integrations, Sales and Operational Automation",
+      "proposedSolution": "Develop custom API integrations or middleware to seamlessly connect Ahola Transport's core systems (e.g., Attracs) with key customer or partner platforms for automated exchange of transport orders, status updates, pricing information, and tracking data. This would reduce manual coordination and improve data accuracy.",
+      "businessValue": "Improved data accuracy, faster order processing, enhanced customer experience through real-time information, and reduced administrative burden for sales and operational teams.",
+      "confidence": "medium",
+      "score": 65,
+      "scoreBreakdown": {
+        "relevance": 75,
+        "evidenceStrength": 60,
+        "businessImpact": 70,
+        "growth": 65,
+        "automationFit": 80
+      },
+      "scoreExplanation": "Ahola's focus on digital solutions and customized logistics implies a need for robust data exchange. The existence of third-party integrations (Cargoson) with their Estonian subsidiary indicates a recognition of this need. Enhancing these integrations or building new ones directly aligns with Velho's expertise and could deliver significant operational benefits as the company expands.",
+      "hypothesis": "Ahola Transport, despite its digital focus, may face manual effort or inefficiencies in integrating transport order and information flows with various customer or partner systems, leading to potential data discrepancies or delays.",
+      "discoveryQuestions": [
+        "What are the biggest challenges in exchanging information with customers or partners regarding transport orders and status updates?",
+        "Are there any specific customer or partner platforms with which integration is currently manual or problematic?",
+        "How are discrepancies in order information handled across different systems?",
+        "What is the current process for sharing tracking information with customers?"
+      ],
+      "implementationApproach": "integration",
+      "simplicityRationale": "Focusing on a specific high-volume or high-impact integration point first would demonstrate value and provide a foundation for further integration projects, building on their existing digital framework.",
+      "existingSolutionAssessment": {
+        "status": "partially_addressed",
+        "evidence": [
+          "evidence-009",
+          "evidence-010"
+        ],
+        "rationale": "Ahola Transport OÜ (Estonian subsidiary) has integrations with platforms like Cargoson for Odoo, Workday, and iScala. This indicates an existing approach to integration but doesn't confirm full coverage or efficiency across the entire group's operations or all customer/partner interactions."
+      }
+    }
+  ],
+  "overallScore": 60,
+  "executiveSummary": "Ahola Transport, a well-established Finnish family business in international logistics, demonstrates a strong commitment to digitalization and in-house technology development with its proprietary Attracs ERP system. The company experienced significant growth in 2025, with revenue reaching 145.9 million euros. While their digital strategy is advanced, typical logistics operations often involve manual administrative tasks and integration challenges that could be optimized further. Opportunities exist in streamlining ERP-related administrative tasks and enhancing integrations for transport order and information flow, particularly given their international reach and customized logistics solutions. These opportunities align well with Velho's expertise in automation and integrations for SMEs, though further discovery is essential to confirm specific unmet needs.",
+  "limitations": [
+    "No explicit unmet workflow needs or operational problems were found in publicly available information. Opportunities are inferred based on common challenges in logistics and ERP system management.",
+    "Specific employee count for 'Ahola Transport' vs. 'Ahola Group' is ambiguous in some sources.",
+    "Detailed technical specifications and integration landscape of Attracs ERP are not publicly available."
+  ],
+  "researchCoverage": [
+    {
+      "category": "identity",
+      "queries": [
+        "Ahola Transport official website",
+        "Ahola Transport Oyj Y-tunnus"
+      ],
+      "outcome": "Confirmed legal entity, website, and VAT number."
+    },
+    {
+      "category": "overview",
+      "queries": [
+        "Ahola Transport official website",
+        "Ahola Group",
+        "Ahola Digital"
+      ],
+      "outcome": "Gathered information on business model, services, geographic operations, and company structure."
+    },
+    {
+      "category": "hiring",
+      "queries": [
+        "Ahola Transport careers \"manual\" \"excel\" \"integration\" \"inefficient\"",
+        "Ahola Transport jobs \"automation\" \"CRM\" \"ERP\"",
+        "Ahola Transport avoimet työpaikat \"käsin\" \"Excel\" \"integraatio\" \"tehoton\""
+      ],
+      "outcome": "Found career site and general career information, but no current job postings explicitly mentioning manual work, inefficiencies, or unmet automation needs. TheJobsMap indicated no open roles as of 2026-10-24."
+    },
+    {
+      "category": "growth",
+      "queries": [
+        "Ahola Transport annual report 2025"
+      ],
+      "outcome": "Identified growth in revenue and operations in Finland and Sweden in 2025."
+    },
+    {
+      "category": "technology",
+      "queries": [
+        "Ahola Digital",
+        "Ahola Transport partners CRM ERP",
+        "Ahola Transport careers \"manual\" \"excel\" \"integration\" \"inefficient\"",
+        "Ahola Transport jobs \"automation\" \"CRM\" \"ERP\""
+      ],
+      "outcome": "Identified in-house ERP system (Attracs), Ahola Digital unit, and existing third-party integrations (Cargoson with Odoo, Workday, iScala) for its Estonian subsidiary."
+    },
+    {
+      "category": "financials",
+      "queries": [
+        "Ahola Transport annual report 2025",
+        "Ahola Transport Oyj financial statements 2025"
+      ],
+      "outcome": "Obtained revenue figure for 2025 from the annual review."
+    },
+    {
+      "category": "operations",
+      "queries": [
+        "Ahola Transport official website",
+        "Ahola Transport careers \"manual\" \"excel\" \"integration\" \"inefficient\"",
+        "Ahola Transport jobs \"automation\" \"CRM\" \"ERP\""
+      ],
+      "outcome": "Understood transport planning, digital solutions for monitoring, and the 'continuous chain of responsibility' concept. No explicit operational problems found."
+    },
+    {
+      "category": "competition",
+      "queries": [],
+      "outcome": "No specific searches performed for competition, as the primary focus was on internal operations and potential automation needs."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "evidence-001",
+      "title": "Ahola Group’s Annual Review and Sustainability Report 2025 is now published - Ahola Transport",
+      "description": "Article announcing the publication of Ahola Group's 2025 annual review and sustainability report.",
+      "sourceUrl": "https://www.aholatransport.com/gw_ahola_articles/ahola-groups-annual-review-2025-is-now-published",
+      "sourceDate": "2026-05-29",
+      "confidence": "high",
+      "sourceExcerpt": "For Ahola Group, 2025 was a year of growth, development and renewal. During this anniversary year, the Group purposefully advanced its sustainability goals, developed new technological solutions and strengthened its operations in Finland and Sweden. At the same time, Ahola Group’s revenue grew to 145.9 million euros.",
+      "categories": [
+        "growth",
+        "financials"
+      ],
+      "verification": "verified",
+      "sourceType": "news",
+      "eventDate": "2025-12-31",
+      "retrievedAt": "2026-10-25T04:15:15.939Z",
+      "status": "current",
+      "statusEvidence": [
+        "evidence-001"
+      ],
+      "signalType": "workload_growth",
+      "unmetNeedEvidence": null
+    },
+    {
+      "id": "evidence-002",
+      "title": "Annual Report | Sustainability Report | 2025",
+      "description": "Ahola Group's Annual Report and Sustainability Report for 2025.",
+      "sourceUrl": "https://www.aholatransport.com/wp-content/uploads/sites/3/2026/04/vuosikatsaus_raportti_2025_ENG_digi.pdf",
+      "sourceDate": "2026-04-01",
+      "confidence": "high",
+      "sourceExcerpt": "2025 was a positive year for Ahola Transport. ... Ahola Group’s market areas include the Nordics, the Baltics, and Central and Eastern Europe. In addition, some transports go to other European countries. ... For Ahola Special, 2025 was a year of robust activity and major undertakings.",
+      "categories": [
+        "growth",
+        "financials"
+      ],
+      "verification": "verified",
+      "sourceType": "annual_report",
+      "eventDate": "2025-12-31",
+      "retrievedAt": "2026-10-25T04:15:15.939Z",
+      "status": "current",
+      "statusEvidence": [
+        "evidence-002"
+      ],
+      "signalType": "workload_growth",
+      "unmetNeedEvidence": null
+    },
+    {
+      "id": "evidence-003",
+      "title": "Leading the way to the future of logistics - Ahola Transport",
+      "description": "About Us page on Ahola Transport website.",
+      "sourceUrl": "https://www.aholatransport.com/company",
+      "sourceDate": "2023-08-24",
+      "confidence": "high",
+      "sourceExcerpt": "With 70 years of experience, Way Ahead. Our 70 years of experience in trade and transport, together with our dynamic logistics concept, form an unbeatable combination that has helped us become one of the leading transport companies in the Nordic countries and a growth-oriented player in the Central and Eastern European market.",
+      "categories": [
+        "overview",
+        "growth"
+      ],
+      "verification": "verified",
+      "sourceType": "official",
+      "eventDate": null,
+      "retrievedAt": "2026-10-25T04:15:15.026Z",
+      "status": "current",
+      "statusEvidence": [],
+      "signalType": "company_context",
+      "unmetNeedEvidence": null
+    },
+    {
+      "id": "evidence-004",
+      "title": "Ahola Digital: The in-house technology behind Transport - Ahola Transport",
+      "description": "Article about Ahola Digital, the Group's in-house development unit.",
+      "sourceUrl": "https://www.aholatransport.com/ahola-digital-the-in-house-technology-behind-transport/",
+      "sourceDate": "2025-12-18",
+      "confidence": "high",
+      "sourceExcerpt": "Ahola Transport’s transport services are backed by Ahola Digital, the Group’s own development unit. It’s responsible for the operational systems that enable real-time transport monitoring, transparent information flow, and continuously evolving processes.",
+      "categories": [
+        "technology",
+        "operations"
+      ],
+      "verification": "verified",
+      "sourceType": "official",
+      "eventDate": null,
+      "retrievedAt": "2026-10-25T04:15:14.674Z",
+      "status": "current",
+      "statusEvidence": [],
+      "signalType": "existing_solution",
+      "unmetNeedEvidence": null
+    },
+    {
+      "id": "evidence-005",
+      "title": "Efficient transport planning benefits both the environment and the customer - Ahola Transport",
+      "description": "Article discussing Ahola Transport's efficient transport planning and digital tools.",
+      "sourceUrl": "https://www.aholatransport.com/gw_ahola_articles/efficient-transport-planning-benefits-both-the-environment-and-the-customer",
+      "sourceDate": null,
+      "confidence": "high",
+      "sourceExcerpt": "“Using our own ERP system, we can follow the progress, filling degree and profitability of each route in real time. ... For example, our transport planners can use the system to simulate several routes in advance and instantly identify the most efficient and sensible option,” says Magnus. In addition to an efficient, real-time ERP system, other digital tools, such as in-vehicle tablets linked to the ERP system and digital learning platforms, have also helped make transports more efficient.",
+      "categories": [
+        "technology",
+        "operations"
+      ],
+      "verification": "verified",
+      "sourceType": "official",
+      "eventDate": null,
+      "retrievedAt": "2026-10-25T04:15:17.394Z",
+      "status": "current",
+      "statusEvidence": [],
+      "signalType": "existing_solution",
+      "unmetNeedEvidence": null
+    },
+    {
+      "id": "evidence-006",
+      "title": "INFO",
+      "description": "PDF document from Ahola Transport discussing sustainability and their in-house ERP.",
+      "sourceUrl": "https://www.aholatransport.com/wp-content/uploads/sites/3/2021/11/At-info-EN-04-1.pdf",
+      "sourceDate": "2021-11-01",
+      "confidence": "high",
+      "sourceExcerpt": "We have an in-house-developed ERP system, Attracs, for steering our transports. The development of the program started in 1996. The program was implemented back in 2003 and the development is on-going,” says Ahola.",
+      "categories": [
+        "technology",
+        "operations"
+      ],
+      "verification": "verified",
+      "sourceType": "official",
+      "eventDate": null,
+      "retrievedAt": "2026-10-25T04:15:17.394Z",
+      "status": "ongoing",
+      "statusEvidence": [
+        "evidence-006"
+      ],
+      "signalType": "existing_solution",
+      "unmetNeedEvidence": null
+    },
+    {
+      "id": "evidence-007",
+      "title": "Ahola Transport - Way Ahead",
+      "description": "Homepage of Ahola Transport.",
+      "sourceUrl": "https://www.aholatransport.com/",
+      "sourceDate": null,
+      "confidence": "high",
+      "sourceExcerpt": "Ahola Transport’s transport services are backed by Ahola Digital, the Group’s own development unit. It’s responsible for the operational systems that enable real-time transport monitoring, transparent information flow, and continuously evolving processes.",
+      "categories": [
+        "technology",
+        "operations"
+      ],
+      "verification": "verified",
+      "sourceType": "official",
+      "eventDate": null,
+      "retrievedAt": "2026-10-25T04:15:10.519Z",
+      "status": "current",
+      "statusEvidence": [],
+      "signalType": "existing_solution",
+      "unmetNeedEvidence": null
+    },
+    {
+      "id": "evidence-008",
+      "title": "Annual Report | Sustainability Report | 2025",
+      "description": "Ahola Group's Annual Report and Sustainability Report for 2025.",
+      "sourceUrl": "https://www.aholatransport.com/wp-content/uploads/sites/3/2026/04/vuosikatsaus_raportti_2025_ENG_digi.pdf",
+      "sourceDate": "2026-04-01",
+      "confidence": "high",
+      "sourceExcerpt": "Ahola Transport is investing in new technology to scan secured cargo and assess its compliance with safety regulations.",
+      "categories": [
+        "technology"
+      ],
+      "verification": "verified",
+      "sourceType": "annual_report",
+      "eventDate": "2025-12-31",
+      "retrievedAt": "2026-10-25T04:15:15.939Z",
+      "status": "current",
+      "statusEvidence": [],
+      "signalType": "company_context",
+      "unmetNeedEvidence": null
+    },
+    {
+      "id": "evidence-009",
+      "title": "Ahola: contacts, tracking, integration | Cargoson",
+      "description": "Cargoson page detailing integrations with Ahola Transport OÜ.",
+      "sourceUrl": "https://www.cargoson.com/en/integrations/ahola-transport-ou",
+      "sourceDate": null,
+      "confidence": "high",
+      "sourceExcerpt": "You can integrate Ahola Transport OÜ with your ERP, eCommerce platform or other software using Cargoson. ... Ahola + Workday integration, Ahola + iScala integration.",
+      "categories": [
+        "technology"
+      ],
+      "verification": "verified",
+      "sourceType": "vendor_case_study",
+      "eventDate": null,
+      "retrievedAt": "2026-10-25T04:15:17.394Z",
+      "status": "current",
+      "statusEvidence": [],
+      "signalType": "existing_solution",
+      "unmetNeedEvidence": null
+    },
+    {
+      "id": "evidence-010",
+      "title": "Odoo + Ahola Transport OÜ integration | Cargoson",
+      "description": "Cargoson page detailing Odoo integration with Ahola Transport OÜ.",
+      "sourceUrl": "https://www.cargoson.com/en/integrations/ahola-transport-ou/odoo",
+      "sourceDate": null,
+      "confidence": "high",
+      "sourceExcerpt": "Seamless freight transport integration between Odoo and Ahola Transport OÜ. ... For the connection between Cargoson and ERPs like Odoo, we typically rely on specialized third-party providers. ... All Cargoson integrations, including Ahola integration, are always developed and maintained in-house by our dedicated Cargoson team; these integrations are our utmost priority.",
+      "categories": [
+        "technology"
+      ],
+      "verification": "verified",
+      "sourceType": "vendor_case_study",
+      "eventDate": null,
+      "retrievedAt": "2026-10-25T04:15:17.394Z",
+      "status": "current",
+      "statusEvidence": [],
+      "signalType": "existing_solution",
+      "unmetNeedEvidence": null
+    }
+  ],
+  "existingAutomation": [
+    {
+      "id": "existing-auto-001",
+      "name": "Ahola Digital",
+      "kind": "internal_team",
+      "scope": "Development of operational systems for real-time transport monitoring, transparent information flow, and continuously evolving processes.",
+      "evidence": [
+        "evidence-004",
+        "evidence-007"
+      ],
+      "status": "current",
+      "statusEvidence": [
+        "evidence-004",
+        "evidence-007"
+      ],
+      "implication": "potential_gap",
+      "rationale": "While Ahola Digital focuses on operational systems, it is unclear whether it addresses administrative workflow automation or specific external system integration needs beyond core transport operations. There could be complementary opportunities."
+    },
+    {
+      "id": "existing-auto-002",
+      "name": "Attracs ERP System",
+      "kind": "platform",
+      "scope": "In-house developed ERP system for steering transports, real-time monitoring of routes, filling degree, profitability, and simulating routes. Implemented in 2003, with ongoing development since 1996.",
+      "evidence": [
+        "evidence-005",
+        "evidence-006"
+      ],
+      "status": "ongoing",
+      "statusEvidence": [
+        "evidence-006"
+      ],
+      "implication": "potential_gap",
+      "rationale": "The ongoing development of Attracs suggests a continuous need for system enhancements and optimization. While it's a powerful tool, specific administrative tasks or integrations around it might not be fully automated, presenting opportunities for further workflow automation or integration."
+    },
+    {
+      "id": "existing-auto-003",
+      "name": "Cargoson Integrations (for Ahola Transport OÜ)",
+      "kind": "vendor",
+      "scope": "Seamless freight transport integration with Odoo, Workday, and iScala ERPs for Ahola Transport OÜ (Estonian subsidiary). This includes calculating prices, ETD, ETA, CO2; creating shipments, shipping labels, tracking links, and branded notifications automatically.",
+      "evidence": [
+        "evidence-009",
+        "evidence-010"
+      ],
+      "status": "current",
+      "statusEvidence": [
+        "evidence-009",
+        "evidence-010"
+      ],
+      "implication": "partially_addressed",
+      "rationale": "These integrations address a part of the integration requirement for the Estonian subsidiary. However, it's unknown if similar seamless integrations exist for all of Ahola Transport's operations, other subsidiaries, or with all their diverse customer/partner platforms, leaving potential gaps for further integration projects."
+    }
+  ],
+  "researchGaps": [
+    {
+      "id": "gap-001",
+      "category": "operations",
+      "question": "What specific administrative or data management tasks within Ahola Transport are currently performed manually, particularly those related to the Attracs ERP system?",
+      "reason": "To identify concrete workflow automation opportunities beyond the general assumption of administrative overhead in logistics.",
+      "priority": "high",
+      "evidence": [
+        "evidence-005",
+        "evidence-006"
+      ]
+    },
+    {
+      "id": "gap-002",
+      "category": "technology",
+      "question": "What are the limitations or challenges with existing integrations between Ahola Transport's systems and those of its customers or partners?",
+      "reason": "To understand where current integration efforts fall short and where new integration solutions would provide significant value across the entire group's operations.",
+      "priority": "high",
+      "evidence": [
+        "evidence-009",
+        "evidence-010"
+      ]
+    },
+    {
+      "id": "gap-003",
+      "category": "overview",
+      "question": "What is the current headcount specifically for Ahola Transport, distinct from the broader Ahola Group?",
+      "reason": "To accurately assess company size for SME fit according to Velho's criteria, as LinkedIn provided a number for Ahola Transport, but group numbers were also mentioned.",
+      "priority": "medium",
+      "evidence": []
+    }
+  ],
+  "qualificationContext": {
+    "businessModelRelevance": "high",
+    "relevanceExplanation": "Ahola Transport's business model as an international logistics provider with a strong emphasis on digital solutions and efficiency aligns well with Velho's focus on operational automation, CRM/ERP integrations, and custom software for workflow needs.",
+    "deliverySuitability": "suitable",
+    "deliveryExplanation": "Ahola Transport's existing in-house digital development unit (Ahola Digital) and ongoing ERP development (Attracs) indicate a positive disposition towards technological improvements and a foundational infrastructure that Velho can build upon. Their international operations and growth suggest a need for scalable solutions, which Velho can provide.",
+    "evidence": [
+      "evidence-001",
+      "evidence-004",
+      "evidence-005",
+      "evidence-006",
+      "evidence-007"
+    ]
+  }
+}
