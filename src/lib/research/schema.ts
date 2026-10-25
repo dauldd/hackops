@@ -133,6 +133,16 @@ export function parseResearch(value: unknown, now = new Date()): CompanyResearch
  if (o.existingSolutionAssessment && typeof o.existingSolutionAssessment === 'object') fill(o.existingSolutionAssessment as Record<string, unknown>, { status: 'unknown', evidence: [], rationale: 'Existing coverage has not been established.' }, 'opportunity.coverage');
  }
  if (Array.isArray(input.existingAutomation)) for (const item of input.existingAutomation) if (item && typeof item === 'object') fill(item as unknown as Record<string, unknown>, { evidence: [], scope: 'Scope has not been established.', kind: 'unknown', status: 'unknown', statusEvidence: [], implication: 'unknown', rationale: 'Current status and remaining scope are unverified.' }, 'existingAutomation');
+ if (Array.isArray(input.researchGaps)) {
+ const usedIds = new Set(input.researchGaps.map(g => g && typeof g === 'object' && 'id' in g ? String(g.id) : ''));
+ for (const [index, item] of input.researchGaps.entries()) if (item && typeof item === 'object') {
+ const gap = item as unknown as Record<string, unknown>;
+ let generatedId = `normalized-gap-${index + 1}`;
+ while (usedIds.has(generatedId)) generatedId += '-x';
+ fill(gap, { id: generatedId, category: 'operations', question: 'What workflow requirement remains to be clarified?', reason: 'Clarify the open point during discovery.', priority: 'medium', evidence: [] }, `researchGaps[${index}]`);
+ usedIds.add(String(gap.id));
+ }
+ }
  if (defaulted.length && Array.isArray(input.limitations)) input.limitations.push(`Missing research metadata was defaulted conservatively to unknown/null/empty support: ${defaulted.slice(0,30).join(', ')}. No stronger factual status was inferred.`);
  // Category arrays are derived indexes. Normalize a provider's legacy-shaped entries
  // only by linking an already-retained canonical source; never invent a new record.

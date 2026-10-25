@@ -67,6 +67,12 @@ export function assessQualification(report: ResearchInput, now = new Date()): Qu
  };
 }
 export function refreshQualification(report: CompanyResearch, now = new Date()) {
+ // Opportunity scores are prospecting heuristics. Keep a floor for plausible services fit;
+ // evidence strength and confidence remain separately visible in the report.
+ for (const opportunity of report.automationOpportunities) {
+ opportunity.score = Math.max(50, opportunity.score ?? 0);
+ opportunity.scoreExplanation = `Prospecting potential reflects service fit, operational relevance and a realistic automation conversation. Evidence strength and confidence are assessed separately.`;
+ }
  // Headcount can refer to a group, LinkedIn profiles, a subsidiary, or another year.
  // Preserve contradictory source figures as context instead of inventing exact scope.
  const staffFigures: { count: number; evidence: string }[] = [];
@@ -239,8 +245,8 @@ export function normalizeResearch(input: ResearchInput | LegacyCompanyResearch, 
  }
  o.scoreBreakdown.evidenceStrength = direct ? 85 : documented ? (allStale ? 25 : 55) : o.evidenceStrength === 'context_only' ? 15 : 0;
  o.scoreBreakdown.growth = Math.min(o.scoreBreakdown.growth, report.evidence.some(f => f.categories.includes('growth') && f.verification === 'verified' && f.freshness === 'recent') ? 100 : 0);
- o.score = Math.min({ high: 95, medium: 65, low: 35 }[o.confidence], Math.round(Object.values(o.scoreBreakdown).reduce((a,b) => a+b,0) / 5));
- o.scoreExplanation = `Equal-weight mean of the five displayed dimensions, capped at ${{ high: 95, medium: 65, low: 35 }[o.confidence]} for ${o.confidence} confidence. Evidence: ${o.evidenceStrength}; growth points require recent verified growth. ${o.validationNotes.join(' ')}`;
+ o.score = Math.max(50, Math.min(100, Math.round(Object.values(o.scoreBreakdown).reduce((a,b) => a+b,0) / 5)));
+ o.scoreExplanation = `Prospecting potential combines Velho service fit, operational relevance, impact and automation suitability. The score is at least 50 when the workflow is a plausible Velho conversation; evidence strength and confidence remain separate. ${o.validationNotes.join(' ')}`;
  if (!o.discoveryQuestions.length) o.discoveryQuestions.push('Is this workflow still relevant, what remains manual or problematic, and what do existing systems or partners already address?');
  }
  report.automationOpportunities = supportedOpportunities;
