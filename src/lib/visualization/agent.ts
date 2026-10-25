@@ -39,11 +39,11 @@ export function validateInputOverrides(values:unknown,research:CompanyResearch):
 /** Independent reasoning/calculation pipeline; accepts upstream structured research and proposals. */
 export async function createVisualizationReport(research:CompanyResearch,proposals:Proposal[],researchId:number,overrides:Partial<Inputs>={},origin:VisualizationReport['proposalOrigin']='provided',log:ResearchLogger=()=>{},planner=requestStructuredCompletion):Promise<VisualizationReport>{
  assertProposals(proposals,research);
- const base:VisualizationReport={schemaVersion:1,researchId,companyName:research.companyName,createdAt:new Date().toISOString(),status:proposals.length?'ready':'needs_proposal',proposalOrigin:origin,businessCases:[],limitations:[],model:null};
+ const base:VisualizationReport={schemaVersion:1,researchId,companyName:research.companyName,createdAt:new Date().toISOString(),status:proposals.length?'ready':'needs_proposal',proposalOrigin:origin,sources:research.evidence.map(f=>({id:f.id,title:f.title,url:f.sourceUrl,excerpt:f.sourceExcerpt,verification:f.verification})),businessCases:[],limitations:[],model:null};
  if(!proposals.length){base.limitations.push('No upstream automation proposal is available. Add a proposal linked to the research before generating a business case. The visualization agent does not invent a new company problem.');return base;}
  log('visualization.planning','Selecting company-specific business views and extracting supported numeric inputs.',{proposals:proposals.map(p=>({id:p.id,title:p.title}))});
  const evidenceIds=new Set(proposals.flatMap(p=>p.evidence));
- const result=await planner('velho_visualization_plan',planSchema,[{role:'system',content:PROMPT},{role:'user',content:JSON.stringify({companyName:research.companyName,industry:research.overview.industry,proposals,evidence:research.evidence.filter(f=>evidenceIds.has(f.id)).map(f=>({id:f.id,description:f.description,sourceExcerpt:f.sourceExcerpt,verification:f.verification,sourceUrl:f.sourceUrl})),suppliedInputs:overrides,units:Object.fromEntries(inputKeys.map(key=>[key,definitions[key].unit]))})}]);
+ const result=await planner('velho_visualization_plan',planSchema,[{role:'system',content:PROMPT},{role:'user',content:JSON.stringify({companyName:research.companyName,industry:research.overview.industry,proposals,evidence:research.evidence.filter(f=>evidenceIds.has(f.id)).map(f=>({id:f.id,description:f.description,sourceExcerpt:f.sourceExcerpt,verification:f.verification,sourceUrl:f.sourceUrl})),suppliedInputs:overrides,units:Object.fromEntries(inputKeys.map(key=>[key,definitions[key].unit]))})}],undefined,log);
  validateStructuredValue(result.value,planSchema);const plan=result.value as Plan;base.model=result.model;
  const plannedIds=plan.cases.map(c=>c.proposalId);if(new Set(plannedIds).size!==plannedIds.length||plannedIds.some(id=>!proposals.some(p=>p.id===id)))throw new ValidationError('Visualization plan references an unknown or duplicate proposal.');
  for(const original of proposals){
@@ -54,7 +54,7 @@ export async function createVisualizationReport(research:CompanyResearch,proposa
  if(supplied[fact.key]?.value!=null)continue;
  const evidence=research.evidence.find(f=>f.id===fact.sourceId);const permitted=['monthlyVolume','currentMinutes','reviewMinutes','hourlyCost'].includes(fact.key);
  const numbers=(fact.quote.match(/\d+(?:[.,]\d+)?/g)??[]).map(token=>Number(token.replace(',','.')));
- const unitCue=fact.key==='monthlyVolume'?/month|monthly|kuukau|\/mo/i.test(fact.quote):fact.key==='hourlyCost'?/EUR|€/.test(fact.quote)&&/hour|tunti|\/h\b/i.test(fact.quote):/minute|min\b|minuut/i.test(fact.quote);
+ const unitCue=fact.key==='monthlyVolume'?/month|monthly|kuukau|\/mo/i.test(fact.quote)&&/task|order|invoice|request|lead|ticket|document|shipment|transaction|tilaus|lasku|lähetys/i.test(fact.quote):fact.key==='hourlyCost'?/EUR|€/.test(fact.quote)&&/hour|tunti|\/h\b/i.test(fact.quote):/minute|min\b|minuut/i.test(fact.quote);
  if(!permitted||!evidence||!proposal.evidence.includes(fact.sourceId)||evidence.verification!=='verified'||fact.unit!==definitions[fact.key].unit||!normalized(evidence.sourceExcerpt).includes(normalized(fact.quote))||!numbers.includes(fact.value)||!unitCue){notes.push(`Unverified numeric extraction for ${fact.key} was excluded; use company data or an explicit scenario.`);continue;}
  supplied[fact.key]={value:fact.value,unit:fact.unit,classification:'verified',origin:'research',sourceReferences:[fact.sourceId],explanation:fact.quote};
  }
@@ -68,6 +68,7 @@ export async function createVisualizationReport(research:CompanyResearch,proposa
  for(const chart of businessCase.charts){validateChart(chart);if(chart.sourceReferences.some(id=>!research.evidence.some(f=>f.id===id)))throw new ValidationError('Chart cites unknown research evidence.');}
  base.businessCases.push(businessCase);
  }
+ base.limitations.push('Business cases are independent. Do not add their benefits together without checking overlapping workflows.');
  base.limitations.push('Scenario outputs are not achieved results or verified forecasts. Validate workloads, adoption, review requirements and commercial costs before making a financial commitment.');
  return base;
 }
@@ -75,7 +76,7 @@ export async function visualizeCompany(researchId:number,provided:Proposal[]|und
  const saved=getResearch(researchId);if(!saved)throw new ValidationError('Saved company research was not found.');
  createResearchRun(runId,`${saved.report.companyName} · Visualization`);const log=createResearchLogger(runId);
  try{
- const proposals=provided??saved.report.automationOpportunities.slice(0,5).map((o,i):Proposal=>({id:`research-opportunity-${i+1}`,title:o.title,process:o.title,problem:o.hypothesis,proposedSolution:o.proposedSolution,evidence:o.evidence,currentWorkflow:[],proposedWorkflow:[],currentWorkflowStatus:'unknown'}));
+ const proposals=provided??saved.report.automationOpportunities.filter(o=>o.implementationApproach!=='discovery'&&!/^No implementation proposal/i.test(o.proposedSolution)).slice(0,5).map((o,i):Proposal=>({id:`research-opportunity-${i+1}`,title:o.title,process:o.title,problem:o.hypothesis,proposedSolution:o.proposedSolution,evidence:o.evidence,currentWorkflow:[],proposedWorkflow:[],currentWorkflowStatus:'unknown'}));
  const inputs=validateInputOverrides(overrides,saved.report);
  const report=await createVisualizationReport(saved.report,proposals,researchId,inputs,provided?'provided':proposals.length?'research_opportunities':'none',log);
  const artifact=insertVisualization(researchId,report,runId);log('visualization.completed','Business case and chart datasets saved.',{visualizationId:artifact.id,status:report.status,charts:report.businessCases.reduce((total,c)=>total+c.charts.length,0)});finishResearchRun(runId,null);return artifact;

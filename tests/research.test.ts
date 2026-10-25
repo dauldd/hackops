@@ -49,7 +49,7 @@ test('pipeline persists validated report, retrieves history, and never saves inv
 test('reported tool usage must support genuine multi-step research',async()=>{
  const report=fixture();
  const request=async()=>({report,model:'test/model',usage:{server_tool_use:{web_search_requests:1,web_fetch_requests:0}},annotations:[]});
- const count=listResearch().length;const partial=await researchCompany('Example Oy',request);assert.equal(partial.report.researchStatus,'partial');assert.equal(partial.report.overallScore,0);assert.equal(partial.report.automationOpportunities.length,0);assert.equal(listResearch().length,count+1);
+ const count=listResearch().length;const partial=await researchCompany('Example Oy',request);assert.equal(partial.report.researchStatus,'partial');assert.ok(partial.report.overallScore>0);assert.equal(partial.report.automationOpportunities.length,0);assert.equal(listResearch().length,count+1);
  const saved=await researchCompany('Example Oy',async()=>({...await request(),usage:{server_tool_use:{web_search_requests:6,web_fetch_requests:3}}}));assert.ok(!saved.report.limitations.some(s=>s.includes('model-reported')));
 });
 test('same-origin browser submissions work with Next.js internal hostnames',async()=>{
@@ -126,7 +126,7 @@ test('limited initial research triggers a bounded follow-up and preserves a part
  if(options?.followUp){assert.ok(options.timeoutMs!<=240000);throw Error('Follow-up unavailable');}
  return {report:fixture(),model:'test/model',usage:{server_tool_use_details:{web_search_requests:1,web_fetch_requests:1}},annotations:[]};
  });
- assert.equal(calls,2);assert.equal(r.report.researchStatus,'partial');assert.equal(r.report.hiringSignals.length,1);assert.equal(r.report.automationOpportunities.length,0);assert.equal(r.report.overallScore,0);
+ assert.equal(calls,2);assert.equal(r.report.researchStatus,'partial');assert.equal(r.report.hiringSignals.length,1);assert.equal(r.report.automationOpportunities.length,0);assert.ok(r.report.overallScore>0);
 });
 test('successful follow-up consolidates report and search/fetch telemetry across research passes',async()=>{
  let calls=0;

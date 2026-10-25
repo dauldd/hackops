@@ -88,7 +88,8 @@ export function insertResearch(requestedName: string, report: CompanyResearch, m
   return { id: Number(result.lastInsertRowid), requestedName, report, model, createdAt: report.researchedAt };
 }
 export function listResearch() {
- return database().prepare("SELECT id, requested_name AS requestedName, company_name AS companyName, created_at AS createdAt, json_extract(report, '$.overallScore') AS overallScore, json_extract(report, '$.identity.status') AS identityStatus, json_extract(report, '$.qualification.commercialAttractiveness.score') AS commercialScore FROM company_research ORDER BY id DESC LIMIT 100").all().map(row => ({ ...row })) as { id: number; requestedName: string; companyName: string; createdAt: string; overallScore: number; identityStatus: string; commercialScore: number | null }[];
+ const rows=database().prepare("SELECT id, requested_name AS requestedName, company_name AS companyName, created_at AS createdAt, report FROM company_research ORDER BY id DESC LIMIT 100").all() as {id:number;requestedName:string;companyName:string;createdAt:string;report:string}[];
+ return rows.map(row=>{const {report:json,...summary}=row;const report=readStoredResearch(JSON.parse(json));return {...summary,overallScore:report.overallScore,identityStatus:report.identity.status,commercialScore:report.qualification.commercialAttractiveness.score};});
 }
 export function getResearch(id: number): SavedResearch | null {
  const row = database().prepare("SELECT id, requested_name AS requestedName, report, model, created_at AS createdAt, (SELECT id FROM research_runs WHERE report_id = company_research.id ORDER BY created_at DESC LIMIT 1) AS runId FROM company_research WHERE id = ?").get(id) as (Omit<SavedResearch, 'report'> & { report: string }) | undefined;

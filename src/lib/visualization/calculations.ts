@@ -12,6 +12,8 @@ export function resolveInputs(supplied:Partial<Inputs>={}):Inputs{
 }
 function finite(value:number|null){if(value!==null&&!Number.isFinite(value))throw new ValidationError('Calculation produced a non-finite value.');return value;}
 export function calculate(inputs:Inputs):Metrics{
+ for(const key of inputKeys){const value=inputs[key]?.value;if(value===undefined||(value!==null&&(!Number.isFinite(value)||value<0||(definitions[key].unit==='fraction'&&value>1))))throw new ValidationError(`Invalid calculation input ${key}.`);}
+ for(const key of ['monthlyVolume','currentMinutes','automatedMinutes','automationRate','adoptionRate','reviewRate','reviewMinutes','cashRealizationRate','annualGrowthRate'] as const)if(inputs[key].value===null)throw new ValidationError(`Resolve ${key} as a fact or labelled assumption before calculating.`);
  const n=(key:InputKey)=>inputs[key].value;
  const volume=n('monthlyVolume')!,before=n('currentMinutes')!,after=n('automatedMinutes')!,eligible=n('automationRate')!*n('adoptionRate')!;
  const currentMonthlyHours=volume*before/60;

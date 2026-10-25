@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --conditions=react-server --experimental-strip-types tests/research.test.ts && node --conditions=react-server --experimental-strip-types tests/quality.test.ts",
+    "test": "node --conditions=react-server --experimental-strip-types tests/research.test.ts && node --conditions=react-server --experimental-strip-types tests/quality.test.ts && node --conditions=react-server --experimental-strip-types tests/visualization.test.ts",
     "test:browser": "node tests/research.browser.mjs"
   },
   "repository": {

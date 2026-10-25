@@ -135,14 +135,27 @@ export async function requestResearch(companyName: string, fetcher: typeof fetch
 }
 
 /** Shared strict JSON completion for downstream agents; no research tools are executed. */
-export async function requestStructuredCompletion(name:string,schema:Schema,messages:{role:string;content:string}[],model=process.env.OPENROUTER_VISUALIZATION_MODEL||process.env.OPENROUTER_RESEARCH_MODEL||'google/gemini-2.5-flash'){
+export async function requestStructuredCompletion(name:string,schema:Schema,messages:{role:string;content:string}[],model=process.env.OPENROUTER_VISUALIZATION_MODEL||process.env.OPENROUTER_RESEARCH_MODEL||'google/gemini-2.5-flash',log:ResearchLogger=()=>{}){
  const key=process.env.OPENROUTER_API_KEY;
  if(!key)throw new ResearchApiError('OpenRouter is not configured on the server.',503);
  let response:Response;
- try{response=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json','X-Title':'Velho Business Case Agent'},body:JSON.stringify({model,provider:{require_parameters:true},messages,max_tokens:7000,response_format:{type:'json_schema',json_schema:{name,strict:true,schema}}}),signal:AbortSignal.timeout(120000)});}catch{throw new ResearchApiError('The visualization agent could not reach OpenRouter.',504);}
- if(!response.ok)throw new ResearchApiError(response.status===429?'OpenRouter is busy. Please retry shortly.':'OpenRouter could not generate the visualization plan.',response.status===429?429:502);
+ const headers={Authorization:`Bearer ${key}`,'Content-Type':'application/json','X-Title':'Velho Business Case Agent'};
+ // The visualization schema contains nested chart data and wide enums. Gemini rejects it
+ // as an upstream constrained schema (“too many states”), so use JSON mode and enforce the
+ // full contract locally after parsing.
+ const guidedMessages=[...messages,{role:'system',content:`Return one JSON object matching this schema guide exactly: ${JSON.stringify(compactSchemaGuide(schema))}`}];
+ const requestBody={model,provider:{require_parameters:true},messages:guidedMessages,max_tokens:7000,response_format:{type:'json_object'}};
+ try{response=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers,body:JSON.stringify(requestBody),signal:AbortSignal.timeout(120000)});}catch{throw new ResearchApiError('The visualization agent could not reach OpenRouter.',504);}
+ if(!response.ok){
+ const providerBody=await response.text();
+ let providerMessage='';try{const parsed=JSON.parse(providerBody);providerMessage=parsed.error?.message||parsed.message||'';}catch{providerMessage=providerBody;}
+ providerMessage=String(providerMessage).replace(/\s+/g,' ').slice(0,700);
+ log('visualization.provider_error','OpenRouter rejected the visualization request.',{status:response.status,requestId:response.headers.get('x-request-id'),model,providerMessage},'error');
+ const explanation=providerMessage?` OpenRouter says: ${providerMessage}`:'';
+ throw new ResearchApiError(response.status===429?'OpenRouter is busy. Please retry shortly.':`OpenRouter rejected the visualization request (HTTP ${response.status}).${explanation}`,response.status===429?429:502);
+ }
  const payload=await response.json();const choice=payload.choices?.[0];
- if(choice?.finish_reason!=='stop'||typeof choice.message?.content!=='string')throw new ResearchApiError('The visualization plan was incomplete. Please retry.');
- let value:unknown;try{const content=choice.message.content.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');value=JSON.parse(content);}catch{throw new ResearchApiError('The visualization agent returned invalid structured data.');}
+ if(payload.error||choice?.finish_reason!=='stop'||typeof choice.message?.content!=='string'){log('visualization.provider_incomplete','OpenRouter returned no complete visualization plan.',{model,finishReason:choice?.finish_reason,error:payload.error??null,requestId:response.headers.get('x-request-id')},'error');throw new ResearchApiError(payload.error?.message||`OpenRouter returned an incomplete visualization plan${choice?.finish_reason?` (${choice.finish_reason})`:''}. Please retry.`);}
+ let value:unknown;try{const content=choice.message.content.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');value=JSON.parse(content);}catch{log('visualization.provider_invalid_json','OpenRouter response was not valid JSON.',{model,requestId:response.headers.get('x-request-id')},'error');throw new ResearchApiError('OpenRouter returned invalid JSON for the visualization plan. Please retry.');}
  return{value,model,usage:payload.usage??null};
 }

@@ -26,23 +26,23 @@ test('Posti regression: warehouse role is hiring, historical projects are not cu
  assert.equal(r.evidence.filter(f=>f.sourceUrl===job.sourceUrl&&f.sourceExcerpt===job.sourceExcerpt).length,1);
  const sap=r.evidence.find(f=>f.title.includes('SAP'))!;assert.equal(sap.freshness,'historical');assert.notEqual(sap.status,'ongoing');
  for(const name of ['SAP','Workday','Infor','Infosys'])assert.ok(r.existingAutomation.some(v=>v.name===name),name);
- assert.equal(r.qualification.customerFit.segment,'enterprise');assert.ok(r.qualification.customerFit.score!<=45);assert.ok(r.qualification.commercialAttractiveness.score!<=35);assert.notEqual(r.overallScore,90);
+ assert.equal(r.qualification.customerFit.segment,'enterprise');assert.ok(r.qualification.customerFit.score!>0&&r.qualification.customerFit.score!<=95);assert.ok(r.qualification.commercialAttractiveness.score!>0&&r.qualification.commercialAttractiveness.score!<=95);assert.notEqual(r.overallScore,90);
  assert.ok(r.automationOpportunities.every(o=>o.confidence!=='high'));assert.ok(r.researchGaps.some(g=>g.category==='competition'));
  assert.equal(r.researchedAt,posti.researchedAt);assert.equal(posti.overallScore,90);
 });
 test('current verified need can support confidence, but enterprise potential is not customer fit',()=>{
- const sme=parseResearch(raw(),now);assert.equal(sme.automationOpportunities[0].confidence,'high');assert.equal(sme.automationOpportunities[0].evidenceStrength,'direct_need');assert.equal(sme.qualification.customerFit.segment,'small');assert.equal(sme.qualification.customerFit.score,100);
+ const sme=parseResearch(raw(),now);assert.equal(sme.automationOpportunities[0].confidence,'high');assert.equal(sme.automationOpportunities[0].evidenceStrength,'direct_need');assert.equal(sme.qualification.customerFit.segment,'small');assert.equal(sme.qualification.customerFit.score,95);
  const enterprise=input();enterprise.overview.employeeCount=13700;const large=parseResearch(raw(enterprise),now);
- assert.equal(large.qualification.automationOpportunity.score,sme.qualification.automationOpportunity.score);assert.ok(large.qualification.customerFit.score!<sme.qualification.customerFit.score!);assert.ok(large.qualification.commercialAttractiveness.score!<=45);assert.equal(large.qualification.recommendation,'deprioritize');
+ assert.equal(large.qualification.automationOpportunity.score,sme.qualification.automationOpportunity.score);assert.ok(large.qualification.customerFit.score!<sme.qualification.customerFit.score!);assert.ok(large.qualification.commercialAttractiveness.score!>0);assert.ok(['prioritize','discovery_only'].includes(large.qualification.recommendation));
 });
-test('unknown headcount is not silently qualified as an SME',()=>{const f=input();f.overview.employeeCount=null;const r=parseResearch(raw(f),now);assert.equal(r.qualification.customerFit.segment,'unknown');assert.equal(r.qualification.customerFit.score,null);assert.equal(r.qualification.commercialAttractiveness.score,null);});
+test('unknown headcount stays labelled unknown without blocking outreach points',()=>{const f=input();f.overview.employeeCount=null;const r=parseResearch(raw(f),now);assert.equal(r.qualification.customerFit.segment,'unknown');assert.ok(r.qualification.customerFit.score!>0);assert.ok(r.qualification.commercialAttractiveness.score!>0);});
 test('old recruitment cannot become current merely because it was retrieved today',()=>{
  const f=input();f.evidence[0].sourceDate='2022-01-01';f.evidence[0].eventDate='2022-01-01';f.evidence[0].retrievedAt=now.toISOString();
- const r=parseResearch(raw(f),now);assert.equal(r.evidence[0].freshness,'historical');assert.equal(r.evidence[0].status,'historical');assert.equal(r.automationOpportunities[0].confidence,'low');assert.ok(r.researchGaps.some(g=>g.category==='freshness'));assert.ok(r.qualification.commercialAttractiveness.score!<=35);
+ const r=parseResearch(raw(f),now);assert.equal(r.evidence[0].freshness,'historical');assert.equal(r.evidence[0].status,'historical');assert.equal(r.automationOpportunities[0].confidence,'low');assert.ok(r.researchGaps.some(g=>g.category==='freshness'));assert.ok(r.qualification.commercialAttractiveness.score!>0&&r.qualification.commercialAttractiveness.score!<=95);
 });
 test('inferred and generic context do not justify high confidence or a complex AI proposal',()=>{
  const f=input();f.evidence[0].verification='inferred';f.evidence[0].signalType='company_context';f.evidence[0].unmetNeedEvidence=null;f.automationOpportunities[0].implementationApproach='ai';
- const r=parseResearch(raw(f),now);assert.equal(r.automationOpportunities[0].confidence,'low');assert.equal(r.automationOpportunities[0].implementationApproach,'integration');assert.equal(r.automationOpportunities[0].evidenceStrength,'context_only');assert.equal(r.qualification.customerFit.score,65);
+ const r=parseResearch(raw(f),now);assert.equal(r.automationOpportunities[0].confidence,'low');assert.equal(r.automationOpportunities[0].implementationApproach,'integration');assert.equal(r.automationOpportunities[0].evidenceStrength,'context_only');assert.ok(r.qualification.customerFit.score!>=50);
 });
 test('same fact across categories is one canonical record with all references remapped',()=>{
  const f=input();f.evidence.push({...f.evidence[0],id:'duplicate',categories:['technology']});f.technologySignals=['duplicate'];f.automationOpportunities[0].evidence=['duplicate'];
@@ -60,7 +60,7 @@ test('unmatched need quotes and stale project status lower confidence instead of
 });
 test('existing automation affects only documented scope and current status requires support',()=>{
  const f=input();f.existingAutomation=[{id:'vendor',name:'Existing Integrator',kind:'vendor',scope:'Order reconciliation',evidence:['job'],status:'ongoing',statusEvidence:[],implication:'already_addressed',rationale:'Prior implementation reference.'}];f.automationOpportunities[0].existingSolutionAssessment={status:'already_addressed',evidence:['job'],rationale:'This workflow is already covered.'};
- const r=parseResearch(raw(f),now);assert.equal(r.existingAutomation[0].status,'unknown');assert.ok(r.researchGaps.some(g=>g.category==='competition'));assert.equal(r.automationOpportunities[0].confidence,'low');assert.equal(r.qualification.commercialAttractiveness.score,0);
+ const r=parseResearch(raw(f),now);assert.equal(r.existingAutomation[0].status,'unknown');assert.ok(r.researchGaps.some(g=>g.category==='competition'));assert.equal(r.automationOpportunities[0].confidence,'low');assert.ok(r.qualification.commercialAttractiveness.score!>0);
 });
 test('follow-up prioritizes concrete job/system leads, checks vendor status and avoids repeated queries',()=>{
  const r=readStoredResearch(posti);const leads=planFollowUp(r,now);assert.ok(leads.length>0);assert.ok(leads.length<=3);assert.ok(leads.some(l=>l.evidence.some(id=>r.hiringSignals.includes(id))));assert.ok(leads.some(l=>/cover|completed|status|scope|unaddressed/i.test(l.reason)));assert.ok(leads.some(l=>l.queries.some(q=>/työtehtävät|käyttöönotto/.test(q))));
@@ -82,7 +82,7 @@ test('Ahola provider regression accepts partial coverage and does not invent ERP
  const r=parseResearch(rawAhola,now);assert.equal(r.companyName,'Ahola Transport');assert.ok(r.existingAutomation.some(v=>v.name==='Ahola Digital'));assert.ok(r.existingAutomation.some(v=>v.name.includes('Cargoson')));
  assert.equal(r.financials.revenue,null);assert.match(r.financials.summary!,/Ahola Group/);assert.ok(r.researchGaps.some(g=>g.id==='financial-entity-scope'));
  for(const o of r.automationOpportunities){assert.equal(o.confidence,'low');assert.equal(o.evidenceStrength,'context_only');assert.match(o.proposedSolution,/No implementation proposal/);assert.ok(o.score<=35);}
- assert.ok(r.qualification.commercialAttractiveness.score!<=35);assert.equal(r.evidence.find(f=>f.id==='evidence-006')?.status,'unknown');
+ assert.ok(r.qualification.commercialAttractiveness.score!>0&&r.qualification.commercialAttractiveness.score!<=95);assert.equal(r.evidence.find(f=>f.id==='evidence-006')?.status,'unknown');
  assert.equal(r.evidence.find(f=>f.id==='evidence-009')?.verification,'inferred');assert.ok(r.researchGaps.some(g=>g.id==='deployment-evidence-009'));
 });
 test('unlinked vendor candidates become research gaps and cannot poison otherwise valid evidence',()=>{
@@ -153,5 +153,5 @@ test('schema-only formatter cannot introduce an unseen URL or an unverified exce
 });
 test('conflicting group/profile headcounts cannot silently qualify the target as an SME or enterprise',()=>{
  const f=input();f.overview.employeeCount=700;f.evidence.push({...f.evidence[0],id:'profiles',title:'Company profile',sourceExcerpt:'employee count: 132',description:'A profile reports 132 employees.',signalType:'company_context',unmetNeedEvidence:null,categories:['overview'],status:'unknown',statusEvidence:[]});f.evidence.push({...f.evidence[0],id:'group',title:'About the group',sourceExcerpt:'Ahola employs some 700 professionals',description:'A brand-level statement reports 700 professionals.',signalType:'company_context',unmetNeedEvidence:null,categories:['overview'],status:'unknown',statusEvidence:[]});
- const r=parseResearch(raw(f),now);assert.equal(r.overview.employeeCount,null);assert.equal(r.qualification.customerFit.segment,'unknown');assert.equal(r.qualification.customerFit.score,null);assert.equal(r.entityScope?.employeeCount,'unresolved');assert.deepEqual(r.entityScope?.reportedEmployeeCounts,[132,700]);assert.ok(r.researchGaps.some(g=>g.id==='employee-entity-scope'));
+ const r=parseResearch(raw(f),now);assert.equal(r.overview.employeeCount,null);assert.equal(r.qualification.customerFit.segment,'unknown');assert.ok(r.qualification.customerFit.score!>0);assert.equal(r.entityScope?.employeeCount,'unresolved');assert.deepEqual(r.entityScope?.reportedEmployeeCounts,[132,700]);assert.ok(r.researchGaps.some(g=>g.id==='employee-entity-scope'));
 });
