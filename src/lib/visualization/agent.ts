@@ -6,6 +6,7 @@ import {requestStructuredCompletion} from '../research/openrouter.ts';
 import {ValidationError,validateStructuredValue,type CompanyResearch} from '../research/schema.ts';
 import {object,list,textSchema,numSchema,enumeration,inputKeys,chartTypes,proposalSchema,validateChart,type Proposal,type Inputs,type InputKey,type VisualizationReport,type BusinessCase} from './schema.ts';
 import {definitions,resolveInputs,createScenarios} from './calculations.ts';
+import {defaultVisualizationProposals} from './proposals.ts';
 import {buildCharts,purposes,type ChartChoice} from './charts.ts';
 const planSchema=object({cases:list(object({proposalId:textSchema,charts:list(object({purpose:enumeration(purposes),chartType:enumeration(chartTypes),headline:textSchema,insight:textSchema,sellingPoint:textSchema})),extractedInputs:list(object({key:enumeration(inputKeys),value:numSchema,unit:textSchema,sourceId:textSchema,quote:textSchema})),proposedSteps:list(textSchema)}))});
 type Plan={cases:{proposalId:string;charts:ChartChoice[];extractedInputs:{key:InputKey;value:number;unit:string;sourceId:string;quote:string}[];proposedSteps:string[]}[]};
@@ -40,6 +41,7 @@ export function validateInputOverrides(values:unknown,research:CompanyResearch):
 export async function createVisualizationReport(research:CompanyResearch,proposals:Proposal[],researchId:number,overrides:Partial<Inputs>={},origin:VisualizationReport['proposalOrigin']='provided',log:ResearchLogger=()=>{},planner=requestStructuredCompletion):Promise<VisualizationReport>{
  assertProposals(proposals,research);
  const base:VisualizationReport={schemaVersion:1,researchId,companyName:research.companyName,createdAt:new Date().toISOString(),status:proposals.length?'ready':'needs_proposal',proposalOrigin:origin,sources:research.evidence.map(f=>({id:f.id,title:f.title,url:f.sourceUrl,excerpt:f.sourceExcerpt,verification:f.verification})),businessCases:[],limitations:[],model:null};
+ if(origin==='discovery_proposals')base.limitations.push('These are conditional discovery proposals based on retained company context. An unmet need has not been established; all scenario benefits need validation.');
  if(!proposals.length){base.limitations.push('No upstream automation proposal is available. Add a proposal linked to the research before generating a business case. The visualization agent does not invent a new company problem.');return base;}
  log('visualization.planning','Selecting company-specific business views and extracting supported numeric inputs.',{proposals:proposals.map(p=>({id:p.id,title:p.title}))});
  const evidenceIds=new Set(proposals.flatMap(p=>p.evidence));
@@ -76,9 +78,9 @@ export async function visualizeCompany(researchId:number,provided:Proposal[]|und
  const saved=(await getResearch(researchId));if(!saved)throw new ValidationError('Saved company research was not found.');
  (await createResearchRun(runId,`${saved.report.companyName} · Visualization`));const log=createResearchLogger(runId);
  try{
- const proposals=provided??saved.report.automationOpportunities.filter(o=>o.implementationApproach!=='discovery'&&!/^No implementation proposal/i.test(o.proposedSolution)).slice(0,5).map((o,i):Proposal=>({id:`research-opportunity-${i+1}`,title:o.title,process:o.title,problem:o.hypothesis,proposedSolution:o.proposedSolution,evidence:o.evidence,currentWorkflow:[],proposedWorkflow:[],currentWorkflowStatus:'unknown'}));
+ const proposals=provided??defaultVisualizationProposals(saved.report);
  const inputs=validateInputOverrides(overrides,saved.report);
- const report=await createVisualizationReport(saved.report,proposals,researchId,inputs,provided?'provided':proposals.length?'research_opportunities':'none',log);
+ const report=await createVisualizationReport(saved.report,proposals,researchId,inputs,provided?'provided':proposals.some(p=>p.id.startsWith('discovery-'))?'discovery_proposals':proposals.length?'research_opportunities':'none',log);
  const artifact=(await insertVisualization(researchId,report,runId));log('visualization.completed','Business case and chart datasets saved.',{visualizationId:artifact.id,status:report.status,charts:report.businessCases.reduce((total,c)=>total+c.charts.length,0)});await log.flush();(await finishResearchRun(runId,null));return artifact;
  }catch(error){log('visualization.failed',error instanceof Error?error.message:'Visualization failed.',null,'error');await log.flush();(await finishResearchRun(runId,null,error instanceof Error?error.message:'Visualization failed.'));throw error;}
 }

@@ -1,8 +1,8 @@
 # Visualization & Business Case Agent
 
-Click **Visualize** after opening a saved research report. This is a separate agent; opening a company or expanding a report never starts generation. Existing visualizations can be reopened without running the agent again. The report and activity logs can each be collapsed in one click; detailed evidence and score explanations are collapsed for demos.
+Opening a saved research report loads its latest ready visualization, preferring it over newer incomplete attempts. If none is ready, the dashboard prepares one from the report’s proposals. **Refresh dashboard** rebuilds it with the selected inputs. Existing ready visualizations can be reopened without running the agent again. The report and activity logs can each be collapsed in one click; detailed evidence and score explanations are collapsed for demos.
 
-The repository does not yet contain a Proposal Agent. The visualization API accepts its future structured output directly. The current UI can use research opportunity drafts or a user-entered proposal linked to retained research evidence. If there is no actionable proposal, the agent requests one instead of inventing a problem.
+The repository does not yet contain a Proposal Agent. The visualization API accepts its future structured output directly. The UI and API share research opportunity drafts or the same conditional discovery proposals shown on the report when no implementation proposal was established. Discovery proposals require retained evidence and confirmed company identity; they keep current workflows unknown and scenario benefits illustrative. A user-entered proposal can also be linked to retained evidence. If neither evidence nor a proposal is available, the agent requests one. Video creation prepares a missing business case automatically and reuses any existing ready artifact; it still waits for script confirmation before submitting a video render.
 
 ## API and independent use
 

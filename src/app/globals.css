@@ -303,7 +303,8 @@ body { background:#f5f7f5; font-family:Inter,ui-sans-serif,-apple-system,BlinkMa
 .intelligence-app { width:100%; margin:0; padding-left:238px; }
 .workspace-nav { position:fixed; inset:0 auto 0 0; width:238px; padding:34px 22px; background:#123e34; color:#e8f1e9; display:flex; flex-direction:column; z-index:10; }
 .workspace-nav .brand { display:flex; flex-wrap:wrap; align-items:center; gap:9px; color:#fff; font-size:30px; letter-spacing:-1.5px; padding:0 12px; }
-.brand-symbol { display:grid; place-items:center; width:34px; height:34px; border:1px solid #75958a; border-radius:11px; font-family:Georgia,serif; font-size:30px; color:#d1e8b5; }
+.brand-symbol { display:grid; place-items:center; padding-bottom:5px; width:34px; height:34px; border:1px solid #75958a; border-radius:11px; font-family:Georgia,serif; font-size:30px; color:#d1e8b5; }
+.brand-glyph { position:relative; top:-5px; }
 .brand-subtitle { width:100%; margin:5px 0 0 44px; font-size:8px; letter-spacing:2.8px; color:#a6c1b3; }
 .nav-links { display:grid; gap:8px; margin-top:62px; }
 .nav-links a { display:flex; align-items:center; gap:12px; padding:13px 12px; color:#b9cec3; font-size:12px; text-decoration:none; border-radius:8px; }
@@ -323,7 +324,8 @@ body { background:#f5f7f5; font-family:Inter,ui-sans-serif,-apple-system,BlinkMa
 .intelligence-app .intro>p:last-of-type { font-size:13px; line-height:1.8; color:#76837a; }
 .workflow-steps { display:flex; align-items:center; gap:18px; margin-top:26px; font-size:10px; color:#697c70; }.workflow-steps b { color:#3d6049; margin-right:7px; font-size:9px; }.workflow-steps i { color:#b8c5b7; font-style:normal; }
 .research-composer { background:#fff; border:1px solid #dce5dd; border-radius:16px; padding:26px 28px; box-shadow:0 6px 24px #244a3010; }
-.composer-heading { display:flex; align-items:center; gap:13px; margin-bottom:25px; }.composer-heading h2 { font-size:17px; letter-spacing:-.4px; }.composer-heading p { margin:5px 0 0; font-size:11px; color:var(--muted); }.composer-icon { display:grid; place-items:center; width:42px; height:42px; border-radius:12px; font-size:30px; background:#edf3e8; color:#456443; }.research-label { margin-left:auto; font-size:8px; letter-spacing:1.4px; color:#8a9b8b; }
+.composer-heading { display:flex; align-items:center; gap:13px; margin-bottom:25px; }.composer-heading h2 { font-size:17px; letter-spacing:-.4px; }.composer-heading p { margin:5px 0 0; font-size:11px; color:var(--muted); }.composer-icon-glyph { position:relative; top:-5px; }
+.composer-icon { display:grid; place-items:center; width:42px; height:42px; border-radius:12px; font-size:30px; background:#edf3e8; color:#456443; }.research-label { margin-left:auto; font-size:8px; letter-spacing:1.4px; color:#8a9b8b; }
 .research-composer label { margin-bottom:9px; font-size:11px; font-weight:600; }.research-composer input { background:#f8faf7; padding:15px 16px; border-radius:8px; font-size:13px; margin-bottom:18px; }.research-composer input:focus { outline:2px solid #93af7f; outline-offset:2px; }
 .research-composer .composer-footer { padding-top:17px; }.composer-footer>span { font-size:10px; color:#8a958b; }
 .intelligence-app button { border-radius:7px; padding:11px 16px; font-size:11px; transition:background .18s,box-shadow .18s; }.intelligence-app button:hover:enabled { box-shadow:0 3px 9px #163a3020; }.intelligence-app button:disabled { cursor:default; }

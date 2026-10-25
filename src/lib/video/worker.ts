@@ -2,15 +2,18 @@ import 'server-only';
 import {z} from 'zod';
 import {mkdir,rename} from 'node:fs/promises';
 import {resolve} from 'node:path';
+import {visualizeCompany} from '../visualization/agent.ts';
 import {usesD1} from '../database.ts';
 import {database,getResearch,getVisualization,listVisualizations} from '../db.ts';
 import {scriptSchema,SCRIPT_INSTRUCTIONS,sourcesFor,validateScript,prepareScript,scriptEvidence,selectScriptSources,visualizationNumberHint,scriptIntro,type VideoSource} from './script.ts';
 import {videoConfig,presenterImage,videoRequest,durationGuard,routerRequest} from './provider.ts';
 import {getVideo,createVideo,updateVideo,claimVideo,activeVideos,scriptDigest,reserveSubmission,type VideoJob} from './store.ts';
-export async function startVideo(company:number){
+export async function startVideo(company:number,prepareVisualization=visualizeCompany){
  const r=(await getResearch(company));if(!r)throw Error('Research not found.');
- const v=(await Promise.all((await listVisualizations(company)).map(x=>getVisualization(x.id)))).find(x=>x?.report.status==='ready');if(!v)throw Error('A saved, ready visualization report is required.');
  const config=videoConfig();await presenterImage(config.image);
+ let v=(await Promise.all((await listVisualizations(company)).map(x=>getVisualization(x.id)))).find(x=>x?.report.status==='ready'&&x.report.businessCases.length>0);
+ if(!v)v=await prepareVisualization(company,undefined,undefined);
+ if(v.report.status!=='ready'||!v.report.businessCases.length)throw Error('More supporting company evidence or an explicit proposal is needed before creating a video pitch.');
  const job=(await createVideo(company,v.id,sourcesFor(r.report,v.report),config.concurrency,r.report.evidence.length));return job;
 }
 async function generateScript(job:VideoJob){
