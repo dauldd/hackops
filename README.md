@@ -36,3 +36,5 @@ pnpm start
 Run on a Node.js server with persistent, writable disk. Mount the database directory on a persistent volume for containers. Local SQLite files are unsuitable for ephemeral serverless filesystems or multiple replicas with separate disks. This starter has no authentication; add it before hosting private notes on a public service.
 
 References: [Next.js installation](https://nextjs.org/docs/app/getting-started/installation), [Node.js SQLite](https://nodejs.org/api/sqlite.html).
+
+Presenter video pipeline: see [setup, headless API, smoke test and provider verification status](docs/video.md).

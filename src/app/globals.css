@@ -279,3 +279,9 @@ main { width:min(1880px,calc(100% - 32px)); }
 .compact-section>details summary { padding:4px 0; }
 @media(max-width:1100px){.roi-main-grid{grid-template-columns:260px minmax(0,1fr)}.roi-results{grid-template-columns:1fr}.roi-support-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.matrix-panel{grid-column:1/-1}}
 @media(max-width:700px){main{width:calc(100% - 18px)}.roi-dashboard-head{align-items:start}.roi-headline{font-size:18px;flex-direction:column;gap:0}.roi-main-grid{grid-template-columns:1fr}.roi-controls{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px}.roi-results{grid-template-columns:1fr}.roi-support-grid{grid-template-columns:1fr}.roi-panel{height:180px}.matrix-panel{grid-column:auto}.roi-metrics-table th,.roi-metrics-table td{padding:4px;font-size:9px}.roi-kpis b{font-size:15px}}
+
+.automation-output {display:flex;flex-direction:column;gap:24px;min-width:0}
+.automation-output > * {width:100%;min-width:0}
+.video-presenter {margin-top:0;padding:20px;border:1px solid var(--border, #ddd);border-radius:12px;overflow-wrap:anywhere}
+.video-presenter video {display:block;width:100%;max-width:960px;margin-top:12px;border-radius:8px}
+.video-presenter small {display:block;margin-top:6px}

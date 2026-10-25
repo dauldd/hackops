@@ -12,7 +12,7 @@ export type Note = { id: number; body: string; created_at: string };
 const globalDb = globalThis as typeof globalThis & { sqlite?: DatabaseSync };
 
 let schemaReady = false;
-function database() {
+export function database() {
   if (!globalDb.sqlite) {
     const path = resolve(process.env.DATABASE_PATH || "./data/app.sqlite");
     mkdirSync(dirname(path), { recursive: true });
@@ -59,6 +59,16 @@ function database() {
         created_at TEXT NOT NULL
       );
       CREATE INDEX IF NOT EXISTS visualizations_research_id ON company_visualizations(research_id, id);
+      CREATE TABLE IF NOT EXISTS video_pitches (
+        id TEXT PRIMARY KEY, company_id INTEGER NOT NULL REFERENCES company_research(id),
+        visualization_id INTEGER NOT NULL REFERENCES company_visualizations(id),
+        status TEXT NOT NULL, script_text TEXT, script_references TEXT, validation_result TEXT,
+        sources TEXT NOT NULL, openrouter_job_id TEXT, polling_url TEXT, estimated_cost REAL,
+        confirmed_cost REAL, video_file_path TEXT, error TEXT, lease_until INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS video_company ON video_pitches(company_id, created_at);
+      CREATE TABLE IF NOT EXISTS video_webhook_events (id TEXT PRIMARY KEY, created_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS notes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         body TEXT NOT NULL CHECK(length(body) BETWEEN 1 AND 1000),

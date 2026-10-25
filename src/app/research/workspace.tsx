@@ -2,6 +2,7 @@
 import {useEffect,useState,type ReactNode} from 'react';
 import type {ResearchLog,ResearchRunSummary,SavedResearch} from '@/lib/db';
 import BusinessVisualizations from './business-visualizations';
+import VideoPresenter from './video-presenter';
 import type {Assessment,ResearchFinding} from '@/lib/research/schema';
 
 type Summary={id:number;companyName:string;requestedName:string;createdAt:string;overallScore:number;identityStatus:string;commercialScore?:number|null};
@@ -33,7 +34,10 @@ function Report({saved,onRunStarted}:{saved:SavedResearch;onRunStarted:(id:strin
  const topGaps=[...r.researchGaps].sort((a,b)=>priorityRank[a.priority]-priorityRank[b.priority]).slice(0,5);
  return <section aria-labelledby="report-heading" className="report">
   <section className="company-overview report-section"><div className="overview-heading"><div><span className="eyebrow">COMPANY OVERVIEW</span><h2 id="report-heading">{r.companyName}</h2></div>{r.website&&<a href={r.website} target="_blank" rel="noopener noreferrer">Official website ↗</a>}</div><p>{r.overview.description??r.identity.explanation}</p><dl className="overview-facts">{Object.entries({Industry:r.overview.industry,Headquarters:r.overview.headquarters,Employees:r.overview.employeeCount,'Business model':r.overview.businessModel,'Business structure':r.overview.businessStructure}).map(([k,v])=><div key={k}><dt>{k}</dt><dd>{v??'—'}</dd></div>)}</dl><p className="overview-extra"><b>Products & services</b> · {r.overview.productsAndServices.join(' · ')||'—'}<br/><b>Markets</b> · {r.overview.geographicOperations.join(' · ')||'—'}<br/><b>Customers</b> · {r.overview.customerSegments.join(' · ')||'—'}</p></section>
-  <BusinessVisualizations researchId={saved.id} research={r} onRunStarted={onRunStarted}/>
+  <div className="automation-output">
+   <BusinessVisualizations researchId={saved.id} research={r} onRunStarted={onRunStarted}/>
+   <VideoPresenter key={saved.id} companyId={saved.id}/>
+  </div>
   <p className="qualification-summary">Customer fit <b>{r.qualification.customerFit.score??'—'}/100</b>; automation potential <b>{r.qualification.automationOpportunity.score??'—'}/100</b>; commercial attractiveness <b>{r.qualification.commercialAttractiveness.score??'—'}/100</b>. Recommendation: <b>{r.qualification.recommendation.replaceAll('_',' ')}</b>. {r.researchGaps.length} research gaps remain.</p>
   <details className="full-report"><summary>Research details · {r.evidence.length} sources · {r.automationOpportunities.length} opportunities</summary>
    <details className="compact-section"><summary>Qualification</summary><table className="compact-table"><thead><tr><th>Measure</th><th>Score</th><th>Reason</th></tr></thead><tbody>{[['Customer fit',r.qualification.customerFit],['Automation potential',r.qualification.automationOpportunity],['Commercial attractiveness',r.qualification.commercialAttractiveness]].map(([label,assessment])=>{const a=assessment as Assessment;return <tr key={label as string}><td>{label as string}</td><td>{a.score??'—'}/100</td><td>{a.reasons[0]}</td></tr>;})}</tbody></table></details>
