@@ -48,8 +48,11 @@ test('same fact across categories is one canonical record with all references re
  const f=input();f.evidence.push({...f.evidence[0],id:'duplicate',categories:['technology']});f.technologySignals=['duplicate'];f.automationOpportunities[0].evidence=['duplicate'];
  const r=parseResearch(raw(f),now);assert.equal(r.evidence.length,1);assert.deepEqual(r.technologySignals,['job']);assert.deepEqual(r.automationOpportunities[0].evidence,['job']);
 });
-test('missing references are rejected throughout the evidence graph',()=>{
- for(const mutate of [(r:ResearchInput)=>{r.automationOpportunities[0].evidence=['missing'];},(r:ResearchInput)=>{r.evidence[0].statusEvidence=['missing'];},(r:ResearchInput)=>{r.qualificationContext.evidence=['missing'];},(r:ResearchInput)=>{r.researchGaps=[{id:'g',category:'competition',priority:'high',question:'Question?',reason:'Missing evidence.',evidence:['missing']}];}]){const f=input();mutate(f);assert.throws(()=>parseResearch(raw(f),now),/valid finding IDs/);}
+test('dangling references never survive the validated graph; unsupported proposals are withheld',()=>{
+ for(const mutate of [(r:ResearchInput)=>{r.automationOpportunities[0].evidence=['missing'];},(r:ResearchInput)=>{r.evidence[0].statusEvidence=['missing'];},(r:ResearchInput)=>{r.qualificationContext.evidence=['missing'];},(r:ResearchInput)=>{r.researchGaps=[{id:'g',category:'competition',priority:'high',question:'Question?',reason:'Missing evidence.',evidence:['missing']}];}]){
+ const f=input();mutate(f);const r=parseResearch(raw(f),now);const ids=new Set(r.evidence.map(e=>e.id));
+ const references=[...r.automationOpportunities.flatMap(o=>[...o.evidence,...o.existingSolutionAssessment.evidence]),...r.evidence.flatMap(e=>e.statusEvidence),...r.qualificationContext.evidence,...r.researchGaps.flatMap(g=>g.evidence)];assert.ok(references.every(id=>ids.has(id)));assert.ok(r.limitations.some(l=>l.includes('withheld')));
+ }
 });
 test('unmatched need quotes and stale project status lower confidence instead of inventing evidence',()=>{
  const f=input();f.evidence[0].unmetNeedEvidence='Invented spreadsheet bottleneck';
@@ -106,4 +109,49 @@ test('downstream v1 adapter restores category records while retaining validated 
 test('provider enum drift is reconciled conservatively rather than discarding a sourced report',()=>{
  const f=raw() as unknown as Record<string,unknown>;const opportunities=f.automationOpportunities as {existingSolutionAssessment:{status:string};confidence:string}[];opportunities[0].existingSolutionAssessment.status='potential_gap';opportunities[0].confidence='very high';
  const r=parseResearch(f,now);assert.equal(r.automationOpportunities[0].existingSolutionAssessment.status,'unknown');assert.equal(r.automationOpportunities[0].confidence,'low');assert.ok(r.limitations.some(l=>l.includes('normalized to unknown')));
+});
+test('the repeated model schema guide is compact while the API retains full strict validation',async()=>{
+ const {compactSchemaGuide}=await import('../src/lib/research/openrouter.ts');
+ const compact=JSON.stringify(compactSchemaGuide(researchSchema));const full=JSON.stringify(researchSchema);
+ assert.ok(compact.length<full.length*0.65);assert.ok(compact.includes('statusEvidence'));assert.ok(compact.includes('unmetNeedEvidence'));assert.ok(!compact.includes('additionalProperties'));assert.equal(researchRequest('Test Logistics Oy','model').response_format.json_schema.strict,true);
+});
+test('a professional profile cannot become official company hiring evidence through a source-type label',()=>{
+ const f=input();f.evidence[0].sourceType='official';f.evidence[0].sourceUrl='https://www.linkedin.com/in/employee-profile';const r=parseResearch(raw(f),now);assert.equal(r.evidence[0].sourceType,'professional_profile');assert.equal(r.hiringSignals.length,0);assert.notEqual(r.automationOpportunities[0].confidence,'high');
+});
+test('missing status support defaults to unknown rather than discarding a sourced report or asserting current status',()=>{
+ const f=raw() as unknown as Record<string,unknown>;const evidence=f.evidence as Record<string,unknown>[];delete evidence[0].statusEvidence;delete evidence[0].retrievedAt;
+ const r=parseResearch(f,now);assert.equal(r.evidence[0].status,'unknown');assert.notEqual(r.automationOpportunities[0].confidence,'high');assert.ok(r.limitations.some(l=>l.includes('Missing research metadata')));
+});
+test('complete unfenced report after intermediate prose is extracted without rewriting its facts',async()=>{
+ const {parseModelReport}=await import('../src/lib/research/openrouter.ts');const report=raw();assert.deepEqual(parseModelReport('Intermediate research narrative.\n'+JSON.stringify(report)),report);assert.throws(()=>parseModelReport('Intermediate research narrative.\n'+JSON.stringify(report).slice(0,-1)));
+});
+test('a verified structured-data bottleneck still favors integration over unsupported AI',()=>{
+ const f=input();f.automationOpportunities[0].implementationApproach='ai';const r=parseResearch(raw(f),now);assert.equal(r.automationOpportunities[0].implementationApproach,'integration');assert.ok(r.automationOpportunities[0].validationNotes?.some(note=>note.includes('AI recommendation')));
+});
+test('category field-name aliases normalize to canonical taxonomy without inventing source claims',()=>{
+ const f=raw() as unknown as Record<string,unknown>;const evidence=f.evidence as Record<string,unknown>[];evidence[0].categories=['hiringSignals','operationalSignals','miscellaneous'];const r=parseResearch(f,now);assert.ok(r.evidence[0].categories.includes('hiring'));assert.ok(r.evidence[0].categories.includes('operations'));assert.ok(r.evidence[0].categories.includes('overview'));assert.equal(r.evidence.length,1);
+});
+test('narrative-only server-tool output gets one schema-only formatting pass with retained provenance',async()=>{
+ const original=process.env.OPENROUTER_API_KEY;process.env.OPENROUTER_API_KEY='test-key';let calls=0;
+ try{
+ const fixture=raw();const transcript=`Test Logistics Oy: https://example.com https://example.com/legal https://example.com/jobs/operations. ${fixture.evidence[0].sourceExcerpt}`;
+ const result=await requestResearch(fixture.companyName,(async(_url,init)=>{calls++;const body=JSON.parse(String(init?.body));
+ if(calls===1){assert.equal(body.tools.length,2);return new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:transcript,annotations:[{url_citation:{url:fixture.evidence[0].sourceUrl,content:fixture.evidence[0].sourceExcerpt}}]}}],usage:{prompt_tokens:1000,server_tool_use_details:{web_search_requests:3,tool_calls_executed:5}}}));}
+ assert.equal(calls,2);assert.equal(body.tools,undefined);assert.equal(body.max_tool_calls,undefined);assert.equal(body.response_format.json_schema.strict,true);
+ return new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:JSON.stringify(fixture)}}],usage:{prompt_tokens:400}}));
+ }) as typeof fetch);
+ const r=parseResearch(result.report,now);assert.equal(r.evidence[0].verification,'verified');assert.equal(r.evidence[0].sourceUrl,fixture.evidence[0].sourceUrl);assert.equal(calls,2);
+ }finally{if(original===undefined)delete process.env.OPENROUTER_API_KEY;else process.env.OPENROUTER_API_KEY=original;}
+});
+test('schema-only formatter cannot introduce an unseen URL or an unverified excerpt as a verified finding',async()=>{
+ const original=process.env.OPENROUTER_API_KEY;process.env.OPENROUTER_API_KEY='test-key';let calls=0;
+ try{
+ const f=raw();f.evidence.push({...f.evidence[0],id:'invented',sourceUrl:'https://made-up.example/claim'});f.evidence[0].sourceExcerpt='An invented source quote that was not retained.';
+ const result=await requestResearch(f.companyName,(async()=>{calls++;return new Response(JSON.stringify(calls===1?{choices:[{finish_reason:'stop',message:{content:'Retained evidence: https://example.com https://example.com/legal https://example.com/jobs/operations. No further details.'}}]}:{choices:[{finish_reason:'stop',message:{content:JSON.stringify(f)}}]}));}) as typeof fetch);
+ const report=result.report as ResearchInput;assert.equal(report.evidence.length,1);assert.equal(report.evidence[0].verification,'unknown');assert.equal(report.evidence[0].confidence,'low');assert.equal(report.evidence[0].unmetNeedEvidence,null);assert.ok(report.limitations.some(l=>l.includes('formatter-introduced')));
+ }finally{if(original===undefined)delete process.env.OPENROUTER_API_KEY;else process.env.OPENROUTER_API_KEY=original;}
+});
+test('conflicting group/profile headcounts cannot silently qualify the target as an SME or enterprise',()=>{
+ const f=input();f.overview.employeeCount=700;f.evidence.push({...f.evidence[0],id:'profiles',title:'Company profile',sourceExcerpt:'employee count: 132',description:'A profile reports 132 employees.',signalType:'company_context',unmetNeedEvidence:null,categories:['overview'],status:'unknown',statusEvidence:[]});f.evidence.push({...f.evidence[0],id:'group',title:'About the group',sourceExcerpt:'Ahola employs some 700 professionals',description:'A brand-level statement reports 700 professionals.',signalType:'company_context',unmetNeedEvidence:null,categories:['overview'],status:'unknown',statusEvidence:[]});
+ const r=parseResearch(raw(f),now);assert.equal(r.overview.employeeCount,null);assert.equal(r.qualification.customerFit.segment,'unknown');assert.equal(r.qualification.customerFit.score,null);assert.equal(r.entityScope?.employeeCount,'unresolved');assert.deepEqual(r.entityScope?.reportedEmployeeCounts,[132,700]);assert.ok(r.researchGaps.some(g=>g.id==='employee-entity-scope'));
 });

@@ -21,7 +21,7 @@ function fixture() {
 }
 test('valid report gets server timestamp, deterministic scores, and evidence links',()=>{const r=parseResearch(fixture(),new Date('2026-10-25'));assert.equal(r.overallScore,35);assert.equal(r.researchedAt,'2026-10-25T00:00:00.000Z');assert.equal(r.automationOpportunities[0].evidence[0],'h1');});
 test('rejects malformed, incomplete and unsupported outputs',()=>{
- const cases: ((r:ReturnType<typeof fixture>)=>void)[] = [r=>{r.automationOpportunities[0].evidence=['missing'];},r=>{r.hiringSignals[0].sourceUrl='javascript:alert(1)';},r=>{r.overview.sourceUrls=[];},r=>{r.researchCoverage=[];},r=>{r.identity.status='ambiguous';},r=>{r.automationOpportunities[0].scoreBreakdown.growth=101;}];
+ const cases: ((r:ReturnType<typeof fixture>)=>void)[] = [r=>{r.hiringSignals[0].sourceUrl='javascript:alert(1)';},r=>{r.overview.sourceUrls=[];},r=>{r.identity.status='ambiguous';},r=>{r.automationOpportunities[0].scoreBreakdown.growth=101;}];
  for(const mutate of cases){const r=fixture();mutate(r);assert.throws(()=>parseResearch(r));}
  assert.throws(()=>parseResearch({companyName:'Only a name'}));
  const financial=fixture() as unknown as Record<string,unknown>;financial.financials={revenue:1000,currency:null,financialYear:null,employeeCount:null,summary:null,sourceUrls:[]};assert.throws(()=>parseResearch(financial));
@@ -43,7 +43,7 @@ test('OpenRouter client handles success, errors and truncation without exposing 
 test('pipeline persists validated report, retrieves history, and never saves invalid research',async()=>{
  const request=async()=>({report:fixture(),model:'test/model',usage:null,annotations:[]});
  const saved=await researchCompany(' Example Oy ',request);assert.equal(getResearch(saved.id)?.report.companyName,'Example Oy');assert.equal(listResearch().length,1);assert.equal(getResearch(999999),null);
- await assert.rejects(researchCompany('Example Oy',async()=>({...await request(),report:{...fixture(),hiringSignals:[]}})));
+ await assert.rejects(researchCompany('Example Oy',async()=>({...await request(),report:{...fixture(),hiringSignals:[{...fixture().hiringSignals[0],sourceUrl:'javascript:unsafe'}]}})));
  await assert.rejects(researchCompany('Bad',async()=>{throw Error('provider failed');}));assert.equal(listResearch().length,1);
 });
 test('reported tool usage must support genuine multi-step research',async()=>{

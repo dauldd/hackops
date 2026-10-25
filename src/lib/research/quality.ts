@@ -68,6 +68,25 @@ export function assessQualification(report: ResearchInput, now = new Date()): Qu
  return { customerFit: { score: fit, segment, sizeBasis: count === null ? 'unknown' : 'sourced employee count', reasons: fitReasons, evidence: context.evidence }, automationOpportunity: { score: strength, reasons: ['Strongest evidence-constrained opportunity score; this measures automation potential, not customer fit or buying intent.'], evidence: [...new Set(report.automationOpportunities.flatMap(o => o.evidence))] }, commercialAttractiveness: { score: commercial, reasons, evidence: [...new Set([...currentNeeds.map(f => f.id), ...candidates.flatMap(o => o.evidence)])] }, recommendation: fit === null || report.identity.status !== 'confirmed' ? 'insufficient_evidence' : (commercial ?? 0) >= 65 ? 'prioritize' : segment === 'enterprise' || (commercial ?? 0) < 20 ? 'deprioritize' : 'discovery_only', scoringMethod: 'v2: explicit SME-fit rubric; opportunity dimension mean constrained by evidence strength/confidence; commercial score combines eligible strength and current need, capped by fit and adjusted for partner uncertainty. Unknown fit stays null.' };
 }
 export function refreshQualification(report: CompanyResearch, now = new Date()) {
+ // Headcount can refer to a group, LinkedIn profiles, a subsidiary, or another year.
+ // Preserve contradictory source figures as context instead of inventing exact scope.
+ const staffFigures: { count: number; evidence: string }[] = [];
+ for (const f of report.evidence) {
+ if (f.freshness === 'historical') continue;
+ const text = f.sourceExcerpt;
+ for (const pattern of [/(?:employee(?:s| count)?|co.workers?|headcount|employs?|työllistää|henkilöstö)[^\d\n]{0,24}(\d[\d ,]*)/gi, /(\d[\d ,]*)\s+(?:employees|co.workers|professionals|henkilöä|työntekijää|ammattilaista|medarbetare)/gi]) {
+ for (const match of text.matchAll(pattern)) { const count = Number(match[1].replace(/[^\d]/g,'')); if (count > 0 && count < 10000000) staffFigures.push({ count, evidence: f.id }); }
+ }
+ }
+ const counts = [...new Set([report.overview.employeeCount, report.financials.employeeCount, ...(report.entityScope?.reportedEmployeeCounts ?? []), ...staffFigures.map(f => f.count)].filter((count): count is number => typeof count === 'number'))].sort((a,b) => a-b);
+ const conflict = counts.length > 1 && ((counts[0] < 250 && counts.at(-1)! >= 250) || counts.at(-1)! >= counts[0] * 2);
+ if (conflict) {
+ report.overview.employeeCount = null; report.financials.employeeCount = null;
+ const note = `Conflicting headcount figures (${counts.join(', ')}) may refer to different group/entity scopes or reporting bases. The target-company headcount and size-based fit are unknown pending verification.`;
+ if (!report.limitations.includes(note)) report.limitations.push(note);
+ addGap(report, 'employee-entity-scope', 'qualification', 'Which current headcount belongs to the exact target legal entity, rather than its group or LinkedIn profiles?', note, [...new Set(staffFigures.map(f => f.evidence))]);
+ }
+ report.entityScope = { employeeCount: conflict ? 'unresolved' : (report.overview.employeeCount ?? report.financials.employeeCount) === null ? 'unknown' : 'reported_target', reportedEmployeeCounts: counts, evidence: [...new Set(staffFigures.map(f => f.evidence))] };
  report.qualification = assessQualification(report, now);
  report.overallScore = report.qualification.automationOpportunity.score ?? 0; // Backward-compatible automation-only alias.
  report.executiveSummary = `${report.companyName}: ${report.evidence.length} source-backed findings, ${report.qualification.customerFit.segment} size profile, and ${report.automationOpportunities.length} automation hypotheses. Customer fit ${report.qualification.customerFit.score ?? 'unknown'}/100; automation potential ${report.overallScore}/100; commercial attractiveness ${report.qualification.commercialAttractiveness.score ?? 'unknown'}/100. Recommendation: ${report.qualification.recommendation}. ${report.researchGaps.length} research gaps remain.`;
@@ -80,7 +99,7 @@ export function normalizeResearch(input: ResearchInput | LegacyCompanyResearch, 
  const duplicateKeys = new Map<string, string>();
  for (const f of report.evidence) {
  safeUrl(f.sourceUrl);
- if (!f.categories.length) throw new ValidationError(`Evidence ${f.id} needs a research category`);
+ if (!f.categories.length) { f.categories = ['overview']; report.limitations.push(`Evidence ${f.id} had no category and is retained as unclassified company context.`); }
  const key = `${sourceKey(f.sourceUrl)}|${normalizedText(f.sourceExcerpt)}`;
  const priorId = aliases.get(f.id);
  if (priorId && `${sourceKey(registry.get(priorId)!.sourceUrl)}|${normalizedText(registry.get(priorId)!.sourceExcerpt)}` !== key) throw new ValidationError(`Conflicting evidence ID ${f.id}`);
@@ -98,8 +117,10 @@ export function normalizeResearch(input: ResearchInput | LegacyCompanyResearch, 
  report.evidence = [...registry.values()];
  const refs = (values: string[], context: string, required = false): string[] => {
  const mapped = [...new Set(values.flatMap(id => /^https?:\/\//i.test(id) ? report.evidence.filter(f => sourceKey(f.sourceUrl) === sourceKey(id)).map(f => f.id).concat(report.evidence.some(f => sourceKey(f.sourceUrl) === sourceKey(id)) ? [] : [id]) : [aliases.get(id) ?? id]))];
- if ((required && !mapped.length) || mapped.some(id => !registry.has(id))) throw new ValidationError(`${context} needs valid finding IDs`);
- return mapped;
+ const invalid = mapped.filter(id => !registry.has(id));
+ if (required && (!mapped.length || invalid.length)) throw new ValidationError(`${context} needs valid finding IDs`);
+ if (invalid.length) report.limitations.push(`${context}: unresolved evidence references were withheld (${invalid.join(', ')}); no unsupported status or qualification claim is treated as verified.`);
+ return mapped.filter(id => registry.has(id));
  };
  if (!legacy) for (const [field, category] of Object.entries(categoryFields)) {
  const supplied = report[field as keyof typeof categoryFields];
@@ -108,6 +129,7 @@ export function normalizeResearch(input: ResearchInput | LegacyCompanyResearch, 
  for (const id of refs(known, field)) registry.get(id)!.categories = [...new Set([...registry.get(id)!.categories, category as EvidenceCategory])];
  }
  for (const f of report.evidence) {
+ f.categories = [...new Set(f.categories)];
  f.statusEvidence = refs(f.statusEvidence, `Status evidence for ${f.id}`);
  const original = f.sourceDate;
  f.sourceDate = dateOnly(f.sourceDate, now);
@@ -115,6 +137,7 @@ export function normalizeResearch(input: ResearchInput | LegacyCompanyResearch, 
  const originalEvent = f.eventDate; f.eventDate = dateOnly(f.eventDate, now, true);
  if (originalEvent && !f.eventDate) report.limitations.push(`Event date for ${f.id} could not be resolved; no exact event date is asserted.`);
  if (f.retrievedAt && (!Number.isFinite(Date.parse(f.retrievedAt)) || Date.parse(f.retrievedAt) > now.getTime() || !f.retrievedAt.includes('T'))) f.retrievedAt = null;
+ if (/linkedin\.com\/in\//i.test(f.sourceUrl)) f.sourceType = 'professional_profile';
  f.observedAt = now.toISOString();
  const date = f.eventDate ?? f.sourceDate;
  f.freshness = !date ? 'undated' : Date.parse(date) > now.getTime() ? 'future' : recent(date, now) ? 'recent' : 'historical';
@@ -181,8 +204,15 @@ export function normalizeResearch(input: ResearchInput | LegacyCompanyResearch, 
  }
  for (const gap of report.researchGaps) gap.evidence = refs(gap.evidence, `Research gap ${gap.id}`);
  if (new Set(report.existingAutomation.map(v => v.id)).size !== report.existingAutomation.length) throw new ValidationError('Duplicate existing automation ID');
+ const supportedOpportunities: AutomationOpportunity[] = [];
  for (const o of report.automationOpportunities) {
- o.evidence = refs(o.evidence, 'Opportunity', true);
+ try { o.evidence = refs(o.evidence, 'Opportunity', true); }
+ catch {
+ report.limitations.push(`Opportunity ${o.title} was withheld because its supporting evidence references could not be validated.`);
+ addGap(report, `opportunity-support-${supportedOpportunities.length}-${report.researchGaps.length}`, 'operations', `Can the proposed ${o.title} workflow be supported by sourced evidence?`, 'The suggested proposal was not retained because its evidence graph was incomplete.');
+ continue;
+ }
+ supportedOpportunities.push(o);
  o.existingSolutionAssessment.evidence = refs(o.existingSolutionAssessment.evidence, 'Existing solution assessment');
  if (o.existingSolutionAssessment.status !== 'unknown' && !o.existingSolutionAssessment.evidence.length) { o.existingSolutionAssessment.status = 'unknown'; o.existingSolutionAssessment.rationale = 'No evidence supports the claimed coverage status; verify existing scope before proposing work.'; }
  const support = o.evidence.map(id => registry.get(id)!);
@@ -201,7 +231,8 @@ export function normalizeResearch(input: ResearchInput | LegacyCompanyResearch, 
  if (!direct) o.validationNotes.push('Documented duties or technology adoption do not establish an unmet need or inefficiency. Validate the problem before outreach.');
  if (allStale) o.validationNotes.push('All supporting event/publication dates are historical, undated, or future; no current buying trigger is established.');
  if (o.existingSolutionAssessment.status === 'already_addressed') o.validationNotes.push('Existing solutions address this workflow; excluded from eligible commercial opportunities.');
- if (o.implementationApproach === 'ai' && !direct) {
+ const aiTaskSupported = support.some(f => f.verification === 'verified' && /unstructured|document|email|enquir|multilingual|language|image|OCR|vapaa.{0,12}teksti|asiakasviest|dokument|kuvantunnist/i.test(f.sourceExcerpt));
+ if (o.implementationApproach === 'ai' && (!direct || !aiTaskSupported)) {
  o.implementationApproach = 'integration';
  o.proposedSolution = 'First map the documented workflow and existing vendor coverage. If a gap is confirmed, evaluate a small rules-based integration or workflow automation before any AI implementation.';
  o.simplicityRationale = 'Evidence does not yet justify a complex AI project; begin with discovery and the simplest viable integration.';
@@ -213,6 +244,7 @@ export function normalizeResearch(input: ResearchInput | LegacyCompanyResearch, 
  o.scoreExplanation = `Equal-weight mean of the five displayed dimensions, capped at ${{ high: 95, medium: 65, low: 35 }[o.confidence]} for ${o.confidence} confidence. Evidence: ${o.evidenceStrength}; growth points require recent verified growth. ${o.validationNotes.join(' ')}`;
  if (!o.discoveryQuestions.length) o.discoveryQuestions.push('Is this workflow still relevant, what remains manual or problematic, and what do existing systems or partners already address?');
  }
+ report.automationOpportunities = supportedOpportunities;
  if (report.financials.revenue !== null && /\b(group|konserni|subsidiary)\b/i.test(report.financials.summary ?? '') && !/\b(group|konserni)\b/i.test(report.companyName)) {
  report.financials.revenue = null;
  report.limitations.push('A financial summary refers to group/subsidiary figures. The target-company revenue field is withheld pending entity-level verification; the sourced summary is retained as context.');
@@ -227,8 +259,18 @@ export function normalizeResearch(input: ResearchInput | LegacyCompanyResearch, 
  for (const count of [report.overview.employeeCount, report.financials.employeeCount]) if (count !== null && !Number.isInteger(count)) throw new ValidationError('Employee counts must be whole numbers');
  if (report.financials.revenue !== null && (!report.financials.currency || !/^[A-Z]{3}$/.test(report.financials.currency) || !report.financials.financialYear)) throw new ValidationError('Revenue needs currency, year and source');
  if (report.identity.status !== 'confirmed' && (report.evidence.length || report.automationOpportunities.length || report.existingAutomation.length || report.website || report.overview.sourceUrls.length || report.financials.sourceUrls.length)) throw new ValidationError('Unresolved identity cannot contain attributed research');
- const categories = new Set(report.researchCoverage.map(c => c.category));
- if (['identity','overview','hiring','growth','technology','financials','operations'].some(c => !categories.has(c)) || categories.size !== report.researchCoverage.length) throw new ValidationError('All seven research categories must be covered without duplicates');
+ const coverage = new Map<string, ResearchInput['researchCoverage'][number]>();
+ for (const item of report.researchCoverage) {
+ const existing = coverage.get(item.category);
+ if (existing) { existing.queries = [...new Set([...existing.queries,...item.queries])]; existing.outcome = [...new Set([existing.outcome,item.outcome])].join(' '); }
+ else coverage.set(item.category,item);
+ }
+ for (const category of ['identity','overview','hiring','growth','technology','financials','operations']) if (!coverage.has(category)) {
+ coverage.set(category,{ category, queries: [], outcome: 'No performed searches were recorded for this category; coverage remains unestablished.' });
+ addGap(report, `coverage-${category}`, category, `What primary evidence is available for ${category}?`, 'The provider did not establish research coverage for this category.');
+ }
+ report.researchCoverage = [...coverage.values()];
+ const categories = new Set(coverage.keys());
  if (!categories.has('competition')) { report.researchCoverage.push({ category: 'competition', queries: [], outcome: 'Existing solutions, internal teams and partner scope were not separately investigated.' }); addGap(report, 'competition-coverage', 'competition', 'Which existing solutions or partners already address the proposed workflows?', 'Commercial qualification needs current competing/complementary scope, not just technology names.'); }
  if (report.identity.status === 'confirmed' && !report.evidence.some(f => f.sourceType === 'job_posting' && f.categories.includes('hiring'))) addGap(report, 'hiring-detail', 'hiring', 'Do current job descriptions document ERP master data, integration monitoring, manual administration, finance or order duties?', 'No concrete job-description evidence was retained; investigate official roles rather than generic career guides.');
  if (report.identity.status === 'confirmed' && !report.existingAutomation.some(v => v.kind === 'vendor' || v.kind === 'internal_team')) addGap(report, 'partner-detail', 'competition', 'Which implementation partners or internal teams cover finance, ERP and operational automation?', 'Platform names alone do not establish implementation responsibility or remaining scope.');

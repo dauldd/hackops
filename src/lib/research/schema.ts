@@ -1,4 +1,4 @@
-import { normalizeResearch } from './quality.ts';
+import { normalizeResearch, refreshQualification } from './quality.ts';
 
 export type Schema = { type: string | string[]; properties?: Record<string, Schema>; items?: Schema; enum?: string[]; minimum?: number; maximum?: number; minLength?: number; maxLength?: number; maxItems?: number; required?: string[]; additionalProperties?: boolean };
 const str: Schema = { type: 'string', minLength: 1, maxLength: 16000 };
@@ -47,7 +47,7 @@ const opportunityMetadata = {
  existingSolutionAssessment: object({ status: choice(['unmet','partially_addressed','already_addressed','unknown']), evidence: strings, rationale: str }),
 };
 const gapSchema = object({ id: str, category: str, question: str, reason: str, priority: choice(['high','medium','low']), evidence: strings });
-const automationSchema = object({ id: str, name: str, kind: choice(['vendor','internal_team','platform','initiative']), scope: str, evidence: strings, status: choice(['current','ongoing','completed','unknown']), statusEvidence: strings, implication: choice(['potential_gap','partially_addressed','already_addressed','possible_partner','unknown']), rationale: str });
+const automationSchema = object({ id: str, name: str, kind: choice(['vendor','internal_team','platform','initiative','unknown']), scope: str, evidence: strings, status: choice(['current','ongoing','completed','unknown']), statusEvidence: strings, implication: choice(['potential_gap','partially_addressed','already_addressed','possible_partner','unknown']), rationale: str });
 export const researchSchema = object({
  ...legacyResearchSchema.properties!,
  researchCoverage: array(object({ category: choice(['identity','overview','hiring','growth','technology','financials','operations','competition']), queries: strings, outcome: str })),
@@ -70,7 +70,7 @@ export interface AutomationOpportunity extends LegacyAutomationOpportunity {
  existingSolutionAssessment: { status: 'unmet' | 'partially_addressed' | 'already_addressed' | 'unknown'; evidence: string[]; rationale: string };
  evidenceStrength?: 'direct_need' | 'documented_work' | 'context_only' | 'insufficient'; validationNotes?: string[];
 }
-export interface ExistingAutomation { id: string; name: string; kind: 'vendor' | 'internal_team' | 'platform' | 'initiative'; scope: string; evidence: string[]; status: 'current' | 'ongoing' | 'completed' | 'unknown'; statusEvidence: string[]; implication: 'potential_gap' | 'partially_addressed' | 'already_addressed' | 'possible_partner' | 'unknown'; rationale: string }
+export interface ExistingAutomation { id: string; name: string; kind: 'vendor' | 'internal_team' | 'platform' | 'initiative' | 'unknown'; scope: string; evidence: string[]; status: 'current' | 'ongoing' | 'completed' | 'unknown'; statusEvidence: string[]; implication: 'potential_gap' | 'partially_addressed' | 'already_addressed' | 'possible_partner' | 'unknown'; rationale: string }
 export interface ResearchGap { id: string; category: string; question: string; reason: string; priority: 'high' | 'medium' | 'low'; evidence: string[]; sourceUrls?: string[] }
 export interface QualificationContext { businessModelRelevance: 'high' | 'medium' | 'low' | 'unknown'; relevanceExplanation: string; deliverySuitability: 'suitable' | 'narrow_pilot_only' | 'unsuitable' | 'unknown'; deliveryExplanation: string; evidence: string[] }
 export interface Assessment { score: number | null; reasons: string[]; evidence: string[] }
@@ -86,6 +86,7 @@ export interface ResearchInput extends Omit<LegacyCompanyResearch, 'hiringSignal
 }
 export interface CompanyResearch extends ResearchInput {
  schemaVersion: 2; qualification: Qualification;
+ entityScope?: { employeeCount: 'reported_target' | 'unresolved' | 'unknown'; reportedEmployeeCounts: number[]; evidence: string[] };
  researchMetrics?: { passes: number; inputTokens: number | null; cachedInputTokens: number | null; uncachedInputTokens: number | null; usageComplete: boolean; outputTokens: number | null; searchRequests: number | null; fetchRequests: number | null; uniqueSources: number };
 }
 
@@ -112,6 +113,27 @@ export function parseResearch(value: unknown, now = new Date()): CompanyResearch
  const cloned = structuredClone(value) as ResearchInput | LegacyCompanyResearch;
  if (modern) {
  const input = cloned as ResearchInput;
+ const record = input as unknown as Record<string, unknown>;
+ const defaulted: string[] = [];
+ const fill = (target: Record<string, unknown>, defaults: Record<string, unknown>, path: string) => {
+ for (const [key, fallback] of Object.entries(defaults)) if (target[key] === undefined || (target[key] === null && fallback !== null)) { target[key] = structuredClone(fallback); defaulted.push(`${path}.${key}`); }
+ };
+ fill(record, { hiringSignals: [], growthSignals: [], technologySignals: [], operationalSignals: [], existingAutomation: [], researchGaps: [], limitations: [], overallScore: 0, executiveSummary: 'Report rendered from structured evidence.', qualificationContext: { businessModelRelevance: 'unknown', relevanceExplanation: 'Business relevance has not been established.', deliverySuitability: 'unknown', deliveryExplanation: 'Delivery scope has not been established.', evidence: [] } }, 'report');
+ if (input.qualificationContext && typeof input.qualificationContext === 'object') fill(input.qualificationContext as unknown as Record<string, unknown>, { businessModelRelevance: 'unknown', relevanceExplanation: 'Business relevance has not been established.', deliverySuitability: 'unknown', deliveryExplanation: 'Delivery scope has not been established.', evidence: [] }, 'qualificationContext');
+ if (Array.isArray(input.evidence)) for (const item of input.evidence) if (item && typeof item === 'object') {
+ const f = item as unknown as Record<string, unknown>;
+ for (const key of ['freshness','observedAt']) delete f[key];
+ fill(f, { sourceDate: null, confidence: 'low', categories: ['overview'], verification: 'unknown', sourceType: 'other', eventDate: null, retrievedAt: null, status: 'unknown', statusEvidence: [], signalType: 'company_context', unmetNeedEvidence: null }, `evidence.${String(f.id)}`);
+ }
+ if (Array.isArray(input.automationOpportunities)) for (const item of input.automationOpportunities) if (item && typeof item === 'object') {
+ const o = item as unknown as Record<string, unknown>;
+ delete o.evidenceStrength; delete o.validationNotes;
+ fill(o, { confidence: 'low', score: 0, scoreExplanation: 'Application-computed score.', discoveryQuestions: [], scoreBreakdown: { relevance: 0, evidenceStrength: 0, businessImpact: 0, growth: 0, automationFit: 0 }, implementationApproach: 'discovery', simplicityRationale: 'No implementation approach is established; verify the workflow and existing scope before proposing work.', existingSolutionAssessment: { status: 'unknown', evidence: [], rationale: 'Existing coverage has not been established.' } }, 'opportunity');
+ if (o.scoreBreakdown && typeof o.scoreBreakdown === 'object') fill(o.scoreBreakdown as Record<string, unknown>, { relevance: 0, evidenceStrength: 0, businessImpact: 0, growth: 0, automationFit: 0 }, 'opportunity.scoreBreakdown');
+ if (o.existingSolutionAssessment && typeof o.existingSolutionAssessment === 'object') fill(o.existingSolutionAssessment as Record<string, unknown>, { status: 'unknown', evidence: [], rationale: 'Existing coverage has not been established.' }, 'opportunity.coverage');
+ }
+ if (Array.isArray(input.existingAutomation)) for (const item of input.existingAutomation) if (item && typeof item === 'object') fill(item as unknown as Record<string, unknown>, { evidence: [], scope: 'Scope has not been established.', kind: 'unknown', status: 'unknown', statusEvidence: [], implication: 'unknown', rationale: 'Current status and remaining scope are unverified.' }, 'existingAutomation');
+ if (defaulted.length && Array.isArray(input.limitations)) input.limitations.push(`Missing research metadata was defaulted conservatively to unknown/null/empty support: ${defaulted.slice(0,30).join(', ')}. No stronger factual status was inferred.`);
  // Category arrays are derived indexes. Normalize a provider's legacy-shaped entries
  // only by linking an already-retained canonical source; never invent a new record.
  for (const field of ['hiringSignals','growthSignals','technologySignals','operationalSignals'] as const) {
@@ -131,11 +153,11 @@ export function parseResearch(value: unknown, now = new Date()): CompanyResearch
  const input = cloned as ResearchInput;
  const reconcileEnums = (value: unknown, schema: Schema, path: string): unknown => {
  if (typeof value === 'string' && schema.enum && !schema.enum.includes(value)) {
- const aliases: Record<string,string> = { finance: 'financials', financial: 'financials', operational: 'operations', recruitment: 'hiring', competitors: 'competition', vendors: 'competition', verified_fact: 'verified' };
+ const aliases: Record<string,string> = { finance: 'financials', financial: 'financials', operational: 'operations', recruitment: 'hiring', competitors: 'competition', vendors: 'competition', verified_fact: 'verified', hiringsignals: 'hiring', growthsignals: 'growth', technologysignals: 'technology', operationalsignals: 'operations', existingautomation: 'competition', companyoverview: 'overview', automationopportunities: 'operations' };
  const alias = aliases[value.toLocaleLowerCase('en')];
  // Aliases only reconcile category names. Verification/confidence must never be upgraded.
  const replacement = path.includes('.categories[') || path.endsWith('.category') ? (alias && schema.enum.includes(alias) ? alias : undefined) : undefined;
- const fallback = replacement ?? ['unknown','other','company_context','low','discovery'].find(candidate => schema.enum!.includes(candidate));
+ const fallback = replacement ?? (path.includes('.categories[') ? 'overview' : undefined) ?? ['unknown','other','company_context','low','discovery'].find(candidate => schema.enum!.includes(candidate));
  if (fallback !== undefined) {
  if (Array.isArray(input.limitations)) input.limitations.push(`Unrecognized ${path} value (${value.slice(0,120)}) was normalized to ${fallback}; no stronger factual status or confidence was assumed.`);
  return fallback;
@@ -156,7 +178,7 @@ export function parseResearch(value: unknown, now = new Date()): CompanyResearch
 /** Upgrade saved v1 reports conservatively without changing their research timestamp or database row. */
 export function readStoredResearch(value: unknown): CompanyResearch {
  const saved = value as CompanyResearch;
- if (saved.schemaVersion === 2) return saved;
+ if (saved.schemaVersion === 2) return refreshQualification(saved, new Date(saved.researchedAt));
  const raw = { ...saved } as unknown as Record<string, unknown>;
  const timestamp = typeof raw.researchedAt === 'string' ? raw.researchedAt : new Date().toISOString();
  const status = raw.researchStatus;
