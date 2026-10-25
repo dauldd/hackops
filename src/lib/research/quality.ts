@@ -66,12 +66,19 @@ export function assessQualification(report: ResearchInput, now = new Date()): Qu
  scoringMethod:'Discovery priority: fit credits relevance, feasible scope and company size; automation potential credits documented workflows and systems; outreach score = 40% fit + 40% potential + 20% timing. No public pain point does not mean no opportunity. Scores are heuristics, not buying probabilities.'
  };
 }
+export function automationPotentialScore(opportunity: AutomationOpportunity) {
+ const b = opportunity.scoreBreakdown;
+ // Potential rewards a plausible, valuable workflow; confidence remains evidence based.
+ const suitability = b.relevance * .35 + b.businessImpact * .30 + b.automationFit * .35;
+ const potential = Math.round(60 + suitability * .35);
+ return Math.min(opportunity.existingSolutionAssessment.status === 'already_addressed' ? 70 : 95, Math.max(60, potential));
+}
 export function refreshQualification(report: CompanyResearch, now = new Date()) {
  // Opportunity scores are prospecting heuristics. Keep a floor for plausible services fit;
  // evidence strength and confidence remain separately visible in the report.
  for (const opportunity of report.automationOpportunities) {
- opportunity.score = Math.max(50, opportunity.score ?? 0);
- opportunity.scoreExplanation = `Prospecting potential reflects service fit, operational relevance and a realistic automation conversation. Evidence strength and confidence are assessed separately.`;
+ opportunity.score = automationPotentialScore(opportunity);
+ opportunity.scoreExplanation = `Optimistic automation potential weights service relevance (35%), business impact (30%) and automation suitability (35%) on a 60–95 discovery scale. Already addressed workflows are capped at 70. Evidence strength and confidence are assessed separately; this is not a buying probability.`;
  }
  // Headcount can refer to a group, LinkedIn profiles, a subsidiary, or another year.
  // Preserve contradictory source figures as context instead of inventing exact scope.
@@ -245,8 +252,8 @@ export function normalizeResearch(input: ResearchInput | LegacyCompanyResearch, 
  }
  o.scoreBreakdown.evidenceStrength = direct ? 85 : documented ? (allStale ? 25 : 55) : o.evidenceStrength === 'context_only' ? 15 : 0;
  o.scoreBreakdown.growth = Math.min(o.scoreBreakdown.growth, report.evidence.some(f => f.categories.includes('growth') && f.verification === 'verified' && f.freshness === 'recent') ? 100 : 0);
- o.score = Math.max(50, Math.min(100, Math.round(Object.values(o.scoreBreakdown).reduce((a,b) => a+b,0) / 5)));
- o.scoreExplanation = `Prospecting potential combines Velho service fit, operational relevance, impact and automation suitability. The score is at least 50 when the workflow is a plausible Velho conversation; evidence strength and confidence remain separate. ${o.validationNotes.join(' ')}`;
+ o.score = automationPotentialScore(o);
+ o.scoreExplanation = `Prospecting potential combines Velho service fit, operational relevance, impact and automation suitability. The score uses an optimistic 60–95 discovery scale; evidence strength and confidence remain separate. ${o.validationNotes.join(' ')}`;
  if (!o.discoveryQuestions.length) o.discoveryQuestions.push('Is this workflow still relevant, what remains manual or problematic, and what do existing systems or partners already address?');
  }
  report.automationOpportunities = supportedOpportunities;

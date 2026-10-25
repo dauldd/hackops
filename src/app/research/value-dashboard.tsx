@@ -1,8 +1,6 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import type {AutomationOpportunity} from '@/lib/research/schema';
 import type {BusinessCase,InputKey} from '@/lib/visualization/schema';
-import {calculate} from '@/lib/visualization/calculations';
 const money=(n:number)=>new Intl.NumberFormat('en-FI',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n);
 const fmt=(n:number)=>new Intl.NumberFormat('en-GB',{maximumFractionDigits:0}).format(n);
 type Values={volume:number;minutes:number;automatedMinutes:number;coverage:number;hourly:number;investment:number};
@@ -15,7 +13,7 @@ const sliderInfo:{key:keyof Values;label:string;min:number;max:number;step:numbe
  {key:'investment',label:'Velho implementation cost',min:1000,max:500000,step:1000,unit:' €'}
 ];
 function Slider({item,value,onChange}:{item:typeof sliderInfo[number];value:number;onChange:(v:number)=>void}){return <label className="roi-slider"><span>{item.label}<b>{item.unit.includes('€')?money(value):`${fmt(value)}${item.unit}`}</b></span><input aria-label={item.label} type="range" min={item.min} max={item.max} step={item.step} value={value} onChange={e=>onChange(Number(e.target.value))}/></label>}
-export default function ValueDashboard({businessCase,opportunities}:{businessCase?:BusinessCase;opportunities:AutomationOpportunity[]}){
+export default function ValueDashboard({businessCase}:{businessCase?:BusinessCase}){
  const inputs=businessCase?.inputs;
  const fact=(key:InputKey,illustration:number)=>{const input=inputs?.[key];return input?.classification==='verified'&&input.value!==null?input.value:illustration;};
  const [v,setV]=useState<Values>({volume:fact('monthlyVolume',2000),minutes:fact('currentMinutes',8),automatedMinutes:fact('automatedMinutes',2),coverage:75,hourly:fact('hourlyCost',35),investment:fact('implementationCost',25000)});
@@ -31,8 +29,6 @@ export default function ValueDashboard({businessCase,opportunities}:{businessCas
  const roi=v.investment?firstYearNet/v.investment*100:0;
  const payback=annualValue>0?v.investment/(annualValue/12):null;
  const moneyBefore=currentMonthlyHours*12*v.hourly,moneyAfter=automatedMonthlyHours*12*v.hourly;
- const opportunitiesTop=opportunities.slice(0,6);
- const complexity=(o:AutomationOpportunity)=>({workflow:25,integration:45,custom_software:72,ai:78,discovery:30}[o.implementationApproach]??50);
  return <section className="roi-dashboard" aria-label="Interactive automation ROI dashboard">
   <div className="roi-dashboard-head"><div><span>VELHO · BUSINESS CASE</span><h2>Interactive Automation ROI Simulator</h2><p>See what automating your processes could mean for your business.</p></div><strong className="roi-headline">{fmt(annualHoursReleased)}<small>hours released / year</small></strong></div>
   <div className="roi-main-grid">
@@ -51,7 +47,7 @@ export default function ValueDashboard({businessCase,opportunities}:{businessCas
   <div className="roi-support-grid">
    <article className="roi-panel"><header><span>Money Leakage Waterfall</span><b>{money(annualValue)} capacity recovered</b></header><p>Annual workload value · based on selected employee cost</p><div className="leakage-waterfall"><div><small>Current</small><b>{money(moneyBefore)}</b><i style={{height:`${Math.max(8,moneyBefore?100:8)}%`}}/></div><div className="leakage-step"><small>Released</small><b>− {money(annualValue)}</b><i style={{height:`${Math.max(8,moneyBefore?Math.min(100,annualValue/Math.max(1,moneyBefore)*100):8)}%`}}/></div><div><small>With Velho</small><b>{money(moneyAfter)}</b><i style={{height:`${Math.max(8,moneyBefore?moneyAfter/moneyBefore*100:8)}%`}}/></div></div></article>
    <article className="roi-panel"><header><span>Employee Time Allocation</span><b>{fmt(annualHoursReleased)} h recovered</b></header><p>Annual time in the selected workflow</p><div className="time-allocation"><div><span>Current workload</span><div><i style={{width:'100%'}}/></div><b>{fmt(currentMonthlyHours*12)} h</b></div><div><span>With Velho</span><div><i style={{width:`${currentMonthlyHours?automatedMonthlyHours/currentMonthlyHours*100:0}%`}}/></div><b>{fmt(automatedMonthlyHours*12)} h</b></div><div><span>Capacity released</span><div className="released"><i style={{width:`${currentMonthlyHours?hoursReleased/currentMonthlyHours*100:0}%`}}/></div><b>{fmt(annualHoursReleased)} h</b></div></div></article>
-  <article className="roi-panel matrix-panel"><header><span>Automation Opportunity Matrix</span><b>Business value × complexity</b></header><div className="opportunity-matrix"><span className="matrix-y">Potential value</span><span className="matrix-x">Implementation complexity →</span>{opportunitiesTop.map((o,index)=><div className="matrix-point" key={`${o.title}-${index}`} style={{left:`${Math.max(8,Math.min(92,complexity(o)))}%`,bottom:`${Math.max(8,Math.min(88,o.score))}%`}} title={`${o.title} · ${o.score}/100`}><i>{o.score}</i><small>{o.title.slice(0,25)}</small></div>)}</div></article>
+
   </div>
  </section>;
 }

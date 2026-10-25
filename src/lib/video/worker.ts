@@ -3,52 +3,59 @@ import {z} from 'zod';
 import {mkdir,rename} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {database,getResearch,getVisualization,listVisualizations} from '../db.ts';
-import {scriptSchema,SCRIPT_INSTRUCTIONS,sourcesFor,validateScript,type VideoSource} from './script.ts';
+import {scriptSchema,SCRIPT_INSTRUCTIONS,sourcesFor,validateScript,prepareScript,scriptEvidence,selectScriptSources,visualizationNumberHint,scriptIntro,type VideoSource} from './script.ts';
 import {videoConfig,presenterImage,videoRequest,durationGuard,routerRequest} from './provider.ts';
-import {getVideo,createVideo,updateVideo,claimVideo,activeVideos,type VideoJob} from './store.ts';
+import {getVideo,createVideo,updateVideo,claimVideo,activeVideos,scriptDigest,reserveSubmission,type VideoJob} from './store.ts';
 export async function startVideo(company:number){
  const r=getResearch(company);if(!r)throw Error('Research not found.');
- const q=r.report.qualification;
- if(q.recommendation==='deprioritize'||q.recommendation==='insufficient_evidence'||q.customerFit.score===null||q.commercialAttractiveness.score===null||q.customerFit.score<40||q.commercialAttractiveness.score<40||r.report.qualificationContext.deliverySuitability==='unsuitable')throw Error(`Video declined: ${q.recommendation}; customer fit ${q.customerFit.score??'unknown'}, commercial attractiveness ${q.commercialAttractiveness.score??'unknown'}. ${q.commercialAttractiveness.reasons.join(' ')}`);
  const v=listVisualizations(company).map(x=>getVisualization(x.id)).find(x=>x?.report.status==='ready');if(!v)throw Error('A saved, ready visualization report is required.');
  const config=videoConfig();await presenterImage(config.image);
- const job=createVideo(company,v.id,sourcesFor(r.report,v.report),config.concurrency);wakeVideoWorker();return job;
+ const job=createVideo(company,v.id,sourcesFor(r.report,v.report),config.concurrency,r.report.evidence.length);wakeVideoWorker();return job;
 }
 async function generateScript(job:VideoJob){
  const row=database().prepare('SELECT company_name FROM company_research WHERE id=?').get(job.company_id) as {company_name:string};
  const company=row.company_name,sources=JSON.parse(job.sources) as VideoSource[];
- const messages:{role:string;content:string}[]=[{role:'system',content:SCRIPT_INSTRUCTIONS},{role:'user',content:JSON.stringify({company,sources,intro:`Hi, I'm an AI presenter from Velho. This observation is for ${company}.`,close:'If useful, we can share the full analysis.'})}];
+ const focusedSources=selectScriptSources(sources);
+ const allowedIds=focusedSources.map(s=>s.id);
+ if(!allowedIds.length)throw Error('No eligible script sources.');
+ // Keep the provider grammar small; enforce all length/array bounds locally with scriptSchema.
+ const wireSchema=z.object({sentences:z.array(z.object({text:z.string(),kind:scriptSchema.shape.sentences.element.shape.kind,sourceIds:z.array(z.enum(allowedIds as [string,...string[]]))}).strict()),thinEvidence:z.boolean(),warning:z.string().nullable()}).strict();
+ const messages:{role:string;content:string}[]=[{role:'system',content:SCRIPT_INSTRUCTIONS},{role:'user',content:JSON.stringify({company,sources:focusedSources.map(s=>({id:s.id,title:s.title,text:s.text,classification:s.classification,hiring:s.hiring})),allowedSourceIds:allowedIds,preferredVisualizationNumber:visualizationNumberHint(focusedSources.find(s=>s.type==='chart')),sentencePlan:'Use intro; a named case study with its actual before/after numbers; a second related finding; an optional careful inference; one narrow proposed action; a personalized closing question tied to the case. Prefer the highest-evidence concrete examples. Target 70–85 words, but retain useful specifics when slightly outside that target. Do not force in an illustrative chart when reported outcomes are stronger. Use EXACT allowedSourceIds including finding: prefixes. Attach relevant finding IDs to the personalized close.',intro:scriptIntro(company)})}];
  for(let attempt=0;attempt<2;attempt++){
  let errors:string[]=[];
  try{
- const response=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{Authorization:`Bearer ${process.env.OPENROUTER_API_KEY}`,'Content-Type':'application/json'},signal:AbortSignal.timeout(90000),body:JSON.stringify({model:process.env.VIDEO_SCRIPT_MODEL||'google/gemini-2.5-flash',messages,max_tokens:2500,response_format:{type:'json_schema',json_schema:{name:'video_script',strict:true,schema:z.toJSONSchema(scriptSchema)}}})});
- if(!response.ok)throw Error(`Script provider ${response.status}: ${(await response.text()).slice(0,1000)}`);
+ const response=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{Authorization:`Bearer ${process.env.OPENROUTER_API_KEY}`,'Content-Type':'application/json'},signal:AbortSignal.timeout(90000),body:JSON.stringify({model:process.env.VIDEO_SCRIPT_MODEL||'google/gemini-2.5-flash',messages,max_tokens:2500,response_format:{type:'json_schema',json_schema:{name:'video_script',strict:true,schema:z.toJSONSchema(wireSchema)}}})});
+ if(!response.ok){updateVideo(job.id,{status:'failed',error:`Script provider ${response.status}: ${(await response.text()).slice(0,1000)}`});return;}
  const data=await response.json();const raw=data.choices?.[0]?.message?.content;
- const script=scriptSchema.parse(JSON.parse(raw));const validation=validateScript(script,sources,company);
- updateVideo(job.id,{script_text:script.sentences.map(s=>s.text).join(' '),script_references:JSON.stringify(script),validation_result:JSON.stringify(validation)});
- if(validation.valid){updateVideo(job.id,{status:'script_ready'});return;}
- errors=validation.errors;messages.push({role:'assistant',content:JSON.stringify(script)});
+ const script=prepareScript(scriptSchema.parse(JSON.parse(raw)),company,sources);const validation=validateScript(script,sources,company);
+ const evidence=scriptEvidence(script,sources,job.coverage?JSON.parse(job.coverage).availableFindings:sources.filter(s=>s.type==='finding').length);
+ updateVideo(job.id,{script_text:script.sentences.map(s=>s.text).join(' '),script_references:JSON.stringify(script),validation_result:JSON.stringify(validation),sentence_citations:JSON.stringify(evidence.sentences),coverage:JSON.stringify(evidence.coverage)});
+ updateVideo(job.id,{status:'awaiting_confirmation',error:null});return;
  }catch(e){errors=[e instanceof Error?e.message:'Invalid structured script'];}
  updateVideo(job.id,{validation_result:JSON.stringify({valid:false,errors,attempt:attempt+1})});
- messages.push({role:'user',content:JSON.stringify({validationErrors:errors,task:'Regenerate once, correcting all errors without inventing evidence.'})});
+ messages.push({role:'user',content:JSON.stringify({validationErrors:errors,task:'Correct the grounding or structural errors once. Keep named cases and measured outcomes. Do not regenerate just because of word count. Use only the exact allowedSourceIds, including finding: prefixes. End with a personalized source-grounded question or next step.'})});
  }
- updateVideo(job.id,{status:'failed_validation',error:'Script failed deterministic validation after two attempts. See validation errors.'});
+ updateVideo(job.id,{status:'failed_validation',error:'The model did not return a usable script after two attempts.'});
 }
 export async function refreshVideo(id:string){
  if(!claimVideo(id))return;
  try{
- let job=getVideo(id)!;const c=videoConfig();
+ let job=getVideo(id)!;
+ if(job.status==='awaiting_confirmation'||job.status==='declined')return;
+ if(job.status==='script_ready'&&(!job.approved_at||job.approved_script_digest!==scriptDigest(job))){updateVideo(id,{status:'awaiting_confirmation',approved_at:null,approved_script_digest:null});return;}
+ const c=videoConfig();
  if(job.status==='queued'){await generateScript(job);job=getVideo(id)!;}
  if(job.status==='script_ready'){
  const company=database().prepare('SELECT company_name FROM company_research WHERE id=?').get(job.company_id) as {company_name:string};
  const savedScript=scriptSchema.parse(JSON.parse(job.script_references||'null'));
  const validation=validateScript(savedScript,JSON.parse(job.sources),company.company_name);
- if(!validation.valid||savedScript.sentences.map(s=>s.text).join(' ')!==job.script_text){updateVideo(id,{status:'failed_validation',validation_result:JSON.stringify(validation),error:'Persisted script failed pre-submission validation.'});return;}
+ if(savedScript.sentences.map(s=>s.text).join(' ')!==job.script_text){updateVideo(id,{status:'awaiting_confirmation',approved_at:null,approved_script_digest:null,error:null});return;}
+ updateVideo(id,{validation_result:JSON.stringify(validation)});
 
  const estimate=durationGuard(job.script_text!,c),image=await presenterImage(c.image);
  // Mark submission BEFORE network call: an ambiguous timeout/crash must never silently resubmit a paid job.
- updateVideo(id,{status:'submitted',estimated_cost:estimate.cost,error:'Submitting to OpenRouter.',lease_until:Date.now()+300000});
- const response=await routerRequest('videos',c.key,{method:'POST',body:JSON.stringify(videoRequest(job.script_text!,image,c,process.env.VIDEO_IMAGE_MAPPING||'frame_images'))});
+ if(!reserveSubmission(id,c.concurrency,estimate.cost))return;
+ const response=await routerRequest('videos',c.key,{method:'POST',body:JSON.stringify(videoRequest(job.script_text!,image,c,process.env.VIDEO_IMAGE_MAPPING||'input_references'))});
  const data=await response.json();if(typeof data.id!=='string')throw Error('OpenRouter accepted response has no job ID; review provider before retrying.');
  updateVideo(id,{openrouter_job_id:data.id,polling_url:data.polling_url||`https://openrouter.ai/api/v1/videos/${encodeURIComponent(data.id)}`,status:'processing',error:null});job=getVideo(id)!;
  }

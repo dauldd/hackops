@@ -11,7 +11,9 @@
     "test": "node --conditions=react-server --experimental-strip-types tests/research.test.ts && node --conditions=react-server --experimental-strip-types tests/quality.test.ts && node --conditions=react-server --experimental-strip-types tests/visualization.test.ts && npm run test:video",
     "test:browser": "node tests/research.browser.mjs",
     "video:smoke": "node --env-file=.env --experimental-strip-types scripts/video-smoke.ts",
-    "test:video": "node --conditions=react-server --experimental-strip-types tests/video.test.ts"
+    "test:video": "node --conditions=react-server --experimental-strip-types tests/video.test.ts",
+    "video:generate": "node --env-file=.env --conditions=react-server --experimental-strip-types scripts/video-generate.ts",
+    "test:video:browser": "node tests/video.browser.mjs"
   },
   "repository": {
     "type": "git",

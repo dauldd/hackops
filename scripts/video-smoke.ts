@@ -8,7 +8,7 @@ const script="Hi, I'm an AI presenter from Velho Applied Intelligence. This is a
 let id=process.env.VIDEO_SMOKE_JOB_ID;
 if(!id){
  const image=await presenterImage(c.image);console.log({estimate:durationGuard(script,c)});
- for(const mapping of ['frame_images','input_references']){
+ for(const mapping of process.env.VIDEO_IMAGE_MAPPING==='frame_images'?['frame_images','input_references']:['input_references']){
  const body=videoRequest(script,image,{...c,callback:undefined},mapping);
  // Exact payload is stored locally, including photo data, with no API key.
  await writeFile(resolve(directory,`request-${mapping}.json`),JSON.stringify(body,null,2));

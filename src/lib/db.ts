@@ -63,6 +63,7 @@ export function database() {
         id TEXT PRIMARY KEY, company_id INTEGER NOT NULL REFERENCES company_research(id),
         visualization_id INTEGER NOT NULL REFERENCES company_visualizations(id),
         status TEXT NOT NULL, script_text TEXT, script_references TEXT, validation_result TEXT,
+        sentence_citations TEXT, coverage TEXT, approved_at TEXT, approved_script_digest TEXT, declined_at TEXT,
         sources TEXT NOT NULL, openrouter_job_id TEXT, polling_url TEXT, estimated_cost REAL,
         confirmed_cost REAL, video_file_path TEXT, error TEXT, lease_until INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL, updated_at TEXT NOT NULL
@@ -75,6 +76,9 @@ export function database() {
         created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
       );
     `);
+    const videoColumns = new Set(globalDb.sqlite.prepare('PRAGMA table_info(video_pitches)').all().map(row => row.name));
+    for (const column of ['sentence_citations', 'coverage', 'approved_at', 'approved_script_digest', 'declined_at']) if (!videoColumns.has(column)) globalDb.sqlite.exec(`ALTER TABLE video_pitches ADD COLUMN ${column} TEXT`);
+    globalDb.sqlite.exec("UPDATE video_pitches SET status='awaiting_confirmation' WHERE status='script_ready' AND approved_at IS NULL AND openrouter_job_id IS NULL");
     schemaReady = true;
   }
   return globalDb.sqlite;

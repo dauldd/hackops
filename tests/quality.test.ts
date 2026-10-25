@@ -81,7 +81,7 @@ test('Ahola provider regression accepts partial coverage and does not invent ERP
  const rawAhola=JSON.parse(readFileSync(new URL('./fixtures/ahola-provider.json',import.meta.url),'utf8'));
  const r=parseResearch(rawAhola,now);assert.equal(r.companyName,'Ahola Transport');assert.ok(r.existingAutomation.some(v=>v.name==='Ahola Digital'));assert.ok(r.existingAutomation.some(v=>v.name.includes('Cargoson')));
  assert.equal(r.financials.revenue,null);assert.match(r.financials.summary!,/Ahola Group/);assert.ok(r.researchGaps.some(g=>g.id==='financial-entity-scope'));
- for(const o of r.automationOpportunities){assert.equal(o.confidence,'low');assert.equal(o.evidenceStrength,'context_only');assert.match(o.proposedSolution,/No implementation proposal/);assert.ok(o.score<=35);}
+ for(const o of r.automationOpportunities){assert.equal(o.confidence,'low');assert.equal(o.evidenceStrength,'context_only');assert.match(o.proposedSolution,/No implementation proposal/);assert.ok(o.score>=60&&o.score<=95); /* Potential is optimistic; unsupported claims still retain low confidence. */}
  assert.ok(r.qualification.commercialAttractiveness.score!>0&&r.qualification.commercialAttractiveness.score!<=95);assert.equal(r.evidence.find(f=>f.id==='evidence-006')?.status,'unknown');
  assert.equal(r.evidence.find(f=>f.id==='evidence-009')?.verification,'inferred');assert.ok(r.researchGaps.some(g=>g.id==='deployment-evidence-009'));
 });
@@ -154,4 +154,36 @@ test('schema-only formatter cannot introduce an unseen URL or an unverified exce
 test('conflicting group/profile headcounts cannot silently qualify the target as an SME or enterprise',()=>{
  const f=input();f.overview.employeeCount=700;f.evidence.push({...f.evidence[0],id:'profiles',title:'Company profile',sourceExcerpt:'employee count: 132',description:'A profile reports 132 employees.',signalType:'company_context',unmetNeedEvidence:null,categories:['overview'],status:'unknown',statusEvidence:[]});f.evidence.push({...f.evidence[0],id:'group',title:'About the group',sourceExcerpt:'Ahola employs some 700 professionals',description:'A brand-level statement reports 700 professionals.',signalType:'company_context',unmetNeedEvidence:null,categories:['overview'],status:'unknown',statusEvidence:[]});
  const r=parseResearch(raw(f),now);assert.equal(r.overview.employeeCount,null);assert.equal(r.qualification.customerFit.segment,'unknown');assert.ok(r.qualification.customerFit.score!>0);assert.equal(r.entityScope?.employeeCount,'unresolved');assert.deepEqual(r.entityScope?.reportedEmployeeCounts,[132,700]);assert.ok(r.researchGaps.some(g=>g.id==='employee-entity-scope'));
+});
+
+test('optimistic potential rewards suitability while preserving evidence confidence and stable saved scores',()=>{
+ const f=input();
+ const o=f.automationOpportunities[0];
+ o.scoreBreakdown={relevance:90,businessImpact:90,automationFit:90,evidenceStrength:0,growth:0};
+ const report=parseResearch(raw(f),now);
+ assert.ok(report.automationOpportunities[0].score>=90);
+ const reopened=readStoredResearch(JSON.parse(JSON.stringify(report)));
+ assert.equal(reopened.automationOpportunities[0].score,report.automationOpportunities[0].score);
+ const covered=input();
+ covered.automationOpportunities[0].existingSolutionAssessment={status:'already_addressed',evidence:['job'],rationale:'Already covered by the existing workflow.'};
+ assert.ok(parseResearch(raw(covered),now).automationOpportunities[0].score<=70);
+});
+
+test('confirmed reports with zero model opportunities still offer three evidence-linked discovery cards',async()=>{
+ const {topOpportunityCards}=await import('../src/lib/research/opportunities.ts');
+ const f=input();f.automationOpportunities=[];
+ const report=parseResearch(raw(f),now);
+ const cards=topOpportunityCards(report);
+ assert.equal(cards.length,3);
+ assert.equal(new Set(cards.map(c=>c.title)).size,3);
+ for(const card of cards){
+  assert.equal(card.discoveryProposal,true);
+  assert.equal(card.confidence,'low');
+  assert.equal(card.existingSolutionAssessment.status,'unknown');
+  assert.ok(card.evidence.length);
+  for(const id of card.evidence)assert.ok(report.evidence.some(f=>f.id===id));
+ }
+ assert.equal(report.automationOpportunities.length,0);
+ assert.equal(topOpportunityCards({...report,identity:{...report.identity,status:'unresolved'}}).length,0);
+ assert.equal(topOpportunityCards({...report,evidence:[]}).length,0);
 });

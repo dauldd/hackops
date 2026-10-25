@@ -20,23 +20,24 @@ export async function presenterImage(image:string){
  try{photo=await readFile(image);}catch{throw Error(`Presenter image could not be read at ${image}. Add the presenter photo there before generating a video.`);}
  return `data:${mime};base64,${photo.toString('base64')}`;
 }
-/** UNVERIFIED for HeyGen until scripts/video-smoke.ts succeeds. Single field mapping to edit.
- * OpenRouter documented generic image shape; Avatar IV duration is omitted (TTS inferred).
- * Try frame_images first; smoke test retries input_references only after a 4xx rejection.
+/** LIVE CONFIRMED 2026-10-25: gen-vid-1792916112-UeYudNmJ7GSHWNd6bx7y completed; MP4 downloaded.
+ * Confirmed usage.cost: 0.3252245. Single field mapping to edit.
+ * Live API rejected frame_images and explicitly requires provider.options.heygen.voice_id.
+ * input_references + flat voice_id are used; Avatar IV duration is omitted (TTS inferred).
+ * Speech is supplied as prompt, photo as input_references, and voice_id directly under heygen.
  */
-export function videoRequest(script:string,image:string,c:ReturnType<typeof videoConfig>,mapping='frame_images'){
+export function videoRequest(script:string,image:string,c:ReturnType<typeof videoConfig>,mapping='input_references'){
  if(!['frame_images','input_references'].includes(mapping))throw Error('VIDEO_IMAGE_MAPPING must be frame_images or input_references.');
  const reference={type:'image_url',image_url:{url:image}};
  return {model:c.model,prompt:script,resolution:c.resolution,aspect_ratio:c.aspect,generate_audio:true,
  ...(mapping==='input_references'?{input_references:[reference]}:{frame_images:[{...reference,frame_type:'first_frame'}]}),
- ...(c.callback?{callback_url:c.callback}:{}),provider:{options:{heygen:{parameters:{voice_id:c.voice,motion_prompt:'Speak calmly, looking directly into the camera, with restrained natural movement.'}}}}};
+ ...(c.callback?{callback_url:c.callback}:{}),provider:{options:{heygen:{voice_id:c.voice,motion_prompt:'Speak calmly, looking directly into the camera, with restrained natural movement.'}}}};
 }
 export function durationGuard(script:string,c:ReturnType<typeof videoConfig>){
- // Conservative 120 words/minute estimate; provider billing is recorded separately.
- const seconds=Math.ceil(script.trim().split(/\s+/).length/2),cost=seconds*0.05;
- if(c.model!=='heygen/avatar-iv')throw Error('Cost guard currently supports only heygen/avatar-iv pricing.');
- if(seconds>c.maxSeconds||cost>c.maxCost)throw Error(`Estimated ${seconds}s / $${cost.toFixed(2)} exceeds configured duration or cost cap.`);
- return {seconds,cost};
+ // Advisory estimate only. The user's Confirm decision authorizes submission.
+ const seconds=Math.ceil(script.trim().split(/\s+/).length/2);
+ const cost=c.model==='heygen/avatar-iv'?seconds*0.05:null;
+ return {seconds,cost,durationTargetExceeded:seconds>c.maxSeconds,costTargetExceeded:cost!==null&&cost>c.maxCost};
 }
 export async function routerRequest(path:string,key:string,init:RequestInit={}){
  const url=new URL(path,'https://openrouter.ai/api/v1/');
