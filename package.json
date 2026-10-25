@@ -4,16 +4,19 @@
   "description": "",
   "scripts": {
     "dev": "next dev",
+    "gmail:connect": "node --env-file=.env --experimental-strip-types scripts/gmail-connect.ts",
+    "test:email": "node --conditions=react-server --experimental-strip-types tests/email.test.ts",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --conditions=react-server --experimental-strip-types tests/research.test.ts && node --conditions=react-server --experimental-strip-types tests/quality.test.ts && node --conditions=react-server --experimental-strip-types tests/visualization.test.ts && npm run test:video",
+    "test": "node --conditions=react-server --experimental-strip-types tests/research.test.ts && node --conditions=react-server --experimental-strip-types tests/quality.test.ts && node --conditions=react-server --experimental-strip-types tests/visualization.test.ts && npm run test:video && npm run test:d1",
     "test:browser": "node tests/research.browser.mjs",
     "video:smoke": "node --env-file=.env --experimental-strip-types scripts/video-smoke.ts",
     "test:video": "node --conditions=react-server --experimental-strip-types tests/video.test.ts",
     "video:generate": "node --env-file=.env --conditions=react-server --experimental-strip-types scripts/video-generate.ts",
-    "test:video:browser": "node tests/video.browser.mjs"
+    "test:video:browser": "node tests/video.browser.mjs",
+    "test:d1": "node --conditions=react-server --experimental-strip-types tests/d1.test.ts"
   },
   "repository": {
     "type": "git",

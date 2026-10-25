@@ -25,20 +25,20 @@ test('grounded script validates; invented figures, source IDs, intro and hype fa
 test('webhook authenticates raw body, timestamp and HMAC',()=>{const raw='{"data":{"id":"a"}}',ts=String(Math.floor(Date.now()/1000));const signature=`t=${ts},v1=${createHmac('sha256','secret').update(`${ts},${raw}`).digest('hex')}`;assert.ok(verifyWebhook(raw,signature,'secret'));assert.ok(!verifyWebhook(raw+' ',signature,'secret'));assert.ok(!verifyWebhook(raw,signature,'wrong'));assert.ok(!verifyWebhook(raw,signature,'secret',Date.now()+301000));assert.ok(!verifyWebhook(raw,null,'secret'));});
 test('text TTS mapping and advisory estimates; polling cannot exfiltrate key',async()=>{const config=videoConfig(),body=videoRequest('Spoken script','https://example.com/photo.png',config);assert.equal(body.prompt,'Spoken script');assert.equal(body.provider.options.heygen.voice_id,'test-voice');assert.ok(!('duration' in body));assert.ok('input_references' in body);assert.ok('input_references' in videoRequest('hello','image',config,'input_references'));assert.equal(durationGuard('word '.repeat(140),config).costTargetExceeded,true);assert.equal(durationGuard('word '.repeat(80),{...config,maxCost:0.1}).costTargetExceeded,true);await assert.rejects(routerRequest('https://attacker.example/api/v1/videos','key'),/Invalid/);});
 test('headless submission, authenticated polling, MP4 storage and confirmed provider cost',async()=>{
- const db=database();for(const i of [1,2,3]){db.prepare('INSERT INTO company_research(id,requested_name,company_name,report,model,created_at) VALUES (?,?,?,?,?,?)').run(i,'Example Oy','Example Oy','{}','test','now');db.prepare('INSERT INTO research_runs(id,company_name,created_at,updated_at) VALUES (?,?,?,?)').run(String(i),'Example Oy','now','now');db.prepare('INSERT INTO company_visualizations(id,research_id,run_id,report,created_at) VALUES (?,?,?,?,?)').run(i,i,String(i),'{}','now');}
- const original=globalThis.fetch;const job=createVideo(1,1,sources,1);assert.equal(createVideo(1,1,sources,1).id,job.id);const parallel=createVideo(2,2,sources,1);assert.equal(parallel.status,'queued');updateVideo(parallel.id,{status:'declined'});
+ const db=database();for(const i of [1,2,3]){(await db.prepare('INSERT INTO company_research(id,requested_name,company_name,report,model,created_at) VALUES (?,?,?,?,?,?)').run(i,'Example Oy','Example Oy','{}','test','now'));(await db.prepare('INSERT INTO research_runs(id,company_name,created_at,updated_at) VALUES (?,?,?,?)').run(String(i),'Example Oy','now','now'));(await db.prepare('INSERT INTO company_visualizations(id,research_id,run_id,report,created_at) VALUES (?,?,?,?,?)').run(i,i,String(i),'{}','now'));}
+ const original=globalThis.fetch;const job=(await createVideo(1,1,sources,1));assert.equal((await createVideo(1,1,sources,1)).id,job.id);const parallel=(await createVideo(2,2,sources,1));assert.equal(parallel.status,'queued');(await updateVideo(parallel.id,{status:'declined'}));
 
  const calls:string[]=[];
  globalThis.fetch=async(input,init)=>{const url=String(input);calls.push(url);assert.equal((init?.headers as Record<string,string>).Authorization,'Bearer test-secret');if(url.includes('/chat/completions'))return Response.json({choices:[{message:{content:JSON.stringify(script)}}]});if(init?.method==='POST'){const body=JSON.parse(String(init.body));assert.equal(body.prompt,script.sentences.map(s=>s.text).join(' '));return Response.json({id:'remote-id',polling_url:'https://openrouter.ai/api/v1/videos/remote-id',status:'queued'});}if(url.includes('/content?'))return new Response(new Uint8Array([0,0,0,24,102,116,121,112]),{headers:{'content-type':'video/mp4'}});return Response.json({id:'remote-id',status:'completed',usage:{cost:0.75}});};
- try{await refreshVideo(job.id);assert.equal(getVideo(job.id)?.status,'awaiting_confirmation');assert.equal(calls.length,1);await refreshVideo(job.id);assert.equal(calls.length,1);assert.throws(()=>decideVideo(job.id,'confirm','outdated-digest'),/changed/);decideVideo(job.id,'confirm',scriptDigest(getVideo(job.id)!));assert.throws(()=>decideVideo(job.id,'confirm',scriptDigest(getVideo(job.id)!)),/already/);await refreshVideo(job.id);const done=getVideo(job.id)!;assert.equal(done.status,'completed');assert.equal(done.confirmed_cost,0.75);assert.equal((await readFile(done.video_file_path!)).length,8);assert.equal(calls.length,4);assert.ok(publicVideo(done).videoUrl);}
+ try{await refreshVideo(job.id);assert.equal((await getVideo(job.id))?.status,'awaiting_confirmation');assert.equal(calls.length,1);await refreshVideo(job.id);assert.equal(calls.length,1);await assert.rejects(async ()=>(await decideVideo(job.id,'confirm','outdated-digest')),/changed/);(await decideVideo(job.id,'confirm',scriptDigest((await getVideo(job.id))!)));await assert.rejects(async ()=>(await decideVideo(job.id,'confirm',scriptDigest((await getVideo(job.id))!))),/already/);await refreshVideo(job.id);const done=(await getVideo(job.id))!;assert.equal(done.status,'completed');assert.equal(done.confirmed_cost,0.75);assert.equal((await readFile(done.video_file_path!)).length,8);assert.equal(calls.length,4);assert.ok(publicVideo(done).videoUrl);}
  finally{globalThis.fetch=original;}
 });
-test('ambiguous paid submission is never resubmitted automatically',async()=>{const job=createVideo(3,3,[],1);updateVideo(job.id,{status:'submitted'});await refreshVideo(job.id);assert.equal(getVideo(job.id)?.status,'failed');assert.match(getVideo(job.id)?.error??'',/unknown/);});
+test('ambiguous paid submission is never resubmitted automatically',async()=>{const job=(await createVideo(3,3,[],1));(await updateVideo(job.id,{status:'submitted'}));await refreshVideo(job.id);assert.equal((await getVideo(job.id))?.status,'failed');assert.match((await getVideo(job.id))?.error??'',/unknown/);});
 
 test('editorial validation notes do not prevent script review or call the video provider',async()=>{
- const original=globalThis.fetch;const job=createVideo(2,2,sources,1);let calls=0;
+ const original=globalThis.fetch;const job=(await createVideo(2,2,sources,1));let calls=0;
  globalThis.fetch=async(input,init)=>{assert.ok(String(input).includes('/chat/completions'));calls++;const messages=JSON.parse(String(init?.body)).messages;assert.ok(messages.length>0);return Response.json({choices:[{message:{content:JSON.stringify({...script,sentences:[{kind:'intro',text:'Bad draft.',sourceIds:[]}]})}}]});};
- try{await refreshVideo(job.id);assert.equal(calls,1);assert.equal(getVideo(job.id)?.status,'awaiting_confirmation');assert.equal(getVideo(job.id)?.openrouter_job_id,null);assert.equal(JSON.parse(getVideo(job.id)!.validation_result!).valid,false);decideVideo(job.id,'decline',scriptDigest(getVideo(job.id)!));}finally{globalThis.fetch=original;}
+ try{await refreshVideo(job.id);assert.equal(calls,1);assert.equal((await getVideo(job.id))?.status,'awaiting_confirmation');assert.equal((await getVideo(job.id))?.openrouter_job_id,null);assert.equal(JSON.parse((await getVideo(job.id))!.validation_result!).valid,false);(await decideVideo(job.id,'decline',scriptDigest((await getVideo(job.id))!)));}finally{globalThis.fetch=original;}
 });
 
 test('legal-name parentheticals can be omitted without rejecting a grounded factual sentence',()=>{
@@ -96,14 +96,14 @@ test('source selection includes measured partner cases rather than only jobs lin
  const selected=selectScriptSources([...sources,{...sources[0],id:'finding:hiring',hiring:true},google]);assert.ok(selected.some(s=>s.id===google.id));
 });
 test('decline prevents submission, including worker restarts',async()=>{
- const job=createVideo(2,2,sources,1);updateVideo(job.id,{status:'awaiting_confirmation',script_text:script.sentences.map(s=>s.text).join(' '),script_references:JSON.stringify(script)});
+ const job=(await createVideo(2,2,sources,1));(await updateVideo(job.id,{status:'awaiting_confirmation',script_text:script.sentences.map(s=>s.text).join(' '),script_references:JSON.stringify(script)}));
  const original=globalThis.fetch;let calls=0;globalThis.fetch=async()=>{calls++;throw Error('Must not call provider');};
- try{decideVideo(job.id,'decline',scriptDigest(getVideo(job.id)!));await refreshVideo(job.id);assert.equal(calls,0);assert.equal(getVideo(job.id)?.status,'declined');}finally{globalThis.fetch=original;}
+ try{(await decideVideo(job.id,'decline',scriptDigest((await getVideo(job.id))!)));await refreshVideo(job.id);assert.equal(calls,0);assert.equal((await getVideo(job.id))?.status,'declined');}finally{globalThis.fetch=original;}
 });
 test('legacy unapproved script_ready jobs cannot submit',async()=>{
- const job=createVideo(2,2,sources,1);updateVideo(job.id,{status:'script_ready',script_text:script.sentences.map(s=>s.text).join(' '),script_references:JSON.stringify(script)});
+ const job=(await createVideo(2,2,sources,1));(await updateVideo(job.id,{status:'script_ready',script_text:script.sentences.map(s=>s.text).join(' '),script_references:JSON.stringify(script)}));
  const original=globalThis.fetch;globalThis.fetch=async()=>{throw Error('Must not call provider');};
- try{await refreshVideo(job.id);assert.equal(getVideo(job.id)?.status,'awaiting_confirmation');decideVideo(job.id,'decline',scriptDigest(getVideo(job.id)!));}finally{globalThis.fetch=original;}
+ try{await refreshVideo(job.id);assert.equal((await getVideo(job.id))?.status,'awaiting_confirmation');(await decideVideo(job.id,'decline',scriptDigest((await getVideo(job.id))!)));}finally{globalThis.fetch=original;}
 });
 
 test('confirmation accepts grounded scripts on either side of the word target',async()=>{
@@ -115,18 +115,18 @@ test('confirmation accepts grounded scripts on either side of the word target',a
  if(variant==='short'){draft.sentences[1].text='Your operations team reviews invoices.';draft.sentences[2].text='Your finance team reconciles invoices.';}
  else draft.sentences[1].text+=' '+script.sentences[1].text+' '+script.sentences[1].text;
  const validation=validateScript(draft,sources,'Example Oy');assert.ok(validation.valid);assert.equal(validation.wordCountInRange,false);
- const job=createVideo(2,2,sources,1);updateVideo(job.id,{status:'awaiting_confirmation',script_text:draft.sentences.map(s=>s.text).join(' '),script_references:JSON.stringify(draft)});
- decideVideo(job.id,'confirm',scriptDigest(getVideo(job.id)!));assert.equal(getVideo(job.id)?.status,'script_ready');assert.ok(getVideo(job.id)?.approved_at);
+ const job=(await createVideo(2,2,sources,1));(await updateVideo(job.id,{status:'awaiting_confirmation',script_text:draft.sentences.map(s=>s.text).join(' '),script_references:JSON.stringify(draft)}));
+ (await decideVideo(job.id,'confirm',scriptDigest((await getVideo(job.id))!)));assert.equal((await getVideo(job.id))?.status,'script_ready');assert.ok((await getVideo(job.id))?.approved_at);
  // Test-only cleanup: do not invoke the worker or submit a video.
- updateVideo(job.id,{status:'completed'});
+ (await updateVideo(job.id,{status:'completed'}));
  }
  }finally{if(oldSeconds===undefined)delete process.env.VIDEO_MAX_SECONDS;else process.env.VIDEO_MAX_SECONDS=oldSeconds;if(oldCost===undefined)delete process.env.VIDEO_MAX_COST_USD;else process.env.VIDEO_MAX_COST_USD=oldCost;}
 });
 test('changing an approved draft invalidates approval before a paid call',async()=>{
- const job=createVideo(2,2,sources,1);updateVideo(job.id,{status:'awaiting_confirmation',script_text:script.sentences.map(s=>s.text).join(' '),script_references:JSON.stringify(script)});
- decideVideo(job.id,'confirm',scriptDigest(getVideo(job.id)!));updateVideo(job.id,{script_text:'Changed draft.'});
+ const job=(await createVideo(2,2,sources,1));(await updateVideo(job.id,{status:'awaiting_confirmation',script_text:script.sentences.map(s=>s.text).join(' '),script_references:JSON.stringify(script)}));
+ (await decideVideo(job.id,'confirm',scriptDigest((await getVideo(job.id))!)));(await updateVideo(job.id,{script_text:'Changed draft.'}));
  const original=globalThis.fetch;let calls=0;globalThis.fetch=async()=>{calls++;throw Error('Must not call provider');};
- try{await refreshVideo(job.id);assert.equal(calls,0);assert.equal(getVideo(job.id)?.status,'awaiting_confirmation');assert.equal(getVideo(job.id)?.approved_at,null);decideVideo(job.id,'decline',scriptDigest(getVideo(job.id)!));}finally{globalThis.fetch=original;}
+ try{await refreshVideo(job.id);assert.equal(calls,0);assert.equal((await getVideo(job.id))?.status,'awaiting_confirmation');assert.equal((await getVideo(job.id))?.approved_at,null);(await decideVideo(job.id,'decline',scriptDigest((await getVideo(job.id))!)));}finally{globalThis.fetch=original;}
 });
 
 test('94-word draft estimates 47 seconds and remains confirmable within the spend limit',()=>{
@@ -139,16 +139,16 @@ test('94-word draft estimates 47 seconds and remains confirmable within the spen
 
 test('confirmed editorial and spend warnings never block the exact approved draft',async()=>{
  const draft=structuredClone(script);draft.sentences[1].text='Your operations team reviews nine thousand invoices each month.';
- const job=createVideo(2,2,sources,1);updateVideo(job.id,{status:'awaiting_confirmation',script_text:draft.sentences.map(s=>s.text).join(' '),script_references:JSON.stringify(draft)});
+ const job=(await createVideo(2,2,sources,1));(await updateVideo(job.id,{status:'awaiting_confirmation',script_text:draft.sentences.map(s=>s.text).join(' '),script_references:JSON.stringify(draft)}));
  const previous=process.env.VIDEO_MAX_COST_USD;process.env.VIDEO_MAX_COST_USD='0.01';
- try{decideVideo(job.id,'confirm',scriptDigest(getVideo(job.id)!));assert.equal(getVideo(job.id)?.status,'script_ready');assert.equal(JSON.parse(getVideo(job.id)!.validation_result!).valid,false);assert.ok(getVideo(job.id)!.estimated_cost!>0.01);
+ try{(await decideVideo(job.id,'confirm',scriptDigest((await getVideo(job.id))!)));assert.equal((await getVideo(job.id))?.status,'script_ready');assert.equal(JSON.parse((await getVideo(job.id))!.validation_result!).valid,false);assert.ok((await getVideo(job.id))!.estimated_cost!>0.01);
  const original=globalThis.fetch;let submitted=false;
  globalThis.fetch=async(input,init)=>{if(init?.method==='POST'){submitted=true;assert.equal(JSON.parse(String(init.body)).prompt,draft.sentences.map(s=>s.text).join(' '));return Response.json({id:'confirmed-warning-fixture',polling_url:'https://openrouter.ai/api/v1/videos/confirmed-warning-fixture'});}if(String(input).includes('/content?'))return new Response(new Uint8Array([0,0,0,24,102,116,121,112]));return Response.json({status:'completed'});};
- try{await refreshVideo(job.id);assert.ok(submitted);assert.equal(getVideo(job.id)?.status,'completed');}finally{globalThis.fetch=original;}}finally{if(previous===undefined)delete process.env.VIDEO_MAX_COST_USD;else process.env.VIDEO_MAX_COST_USD=previous;}
+ try{await refreshVideo(job.id);assert.ok(submitted);assert.equal((await getVideo(job.id))?.status,'completed');}finally{globalThis.fetch=original;}}finally{if(previous===undefined)delete process.env.VIDEO_MAX_COST_USD;else process.env.VIDEO_MAX_COST_USD=previous;}
 });
-test('confirmed drafts queue for a render slot rather than rejecting Confirm',()=>{
- const first=createVideo(1,1,sources,1);updateVideo(first.id,{status:'processing',openrouter_job_id:'slot-fixture'});
- const second=createVideo(2,2,sources,1);updateVideo(second.id,{status:'awaiting_confirmation',script_text:script.sentences.map(s=>s.text).join(' '),script_references:JSON.stringify(script)});
- decideVideo(second.id,'confirm',scriptDigest(getVideo(second.id)!));assert.equal(getVideo(second.id)?.status,'script_ready');assert.equal(reserveSubmission(second.id,1,2),false);
- updateVideo(first.id,{status:'completed'});assert.equal(reserveSubmission(second.id,1,2),true);updateVideo(second.id,{status:'completed'});
+test('confirmed drafts queue for a render slot rather than rejecting Confirm',async ()=>{
+ const first=(await createVideo(1,1,sources,1));(await updateVideo(first.id,{status:'processing',openrouter_job_id:'slot-fixture'}));
+ const second=(await createVideo(2,2,sources,1));(await updateVideo(second.id,{status:'awaiting_confirmation',script_text:script.sentences.map(s=>s.text).join(' '),script_references:JSON.stringify(script)}));
+ (await decideVideo(second.id,'confirm',scriptDigest((await getVideo(second.id))!)));assert.equal((await getVideo(second.id))?.status,'script_ready');assert.equal((await reserveSubmission(second.id,1,2)),false);
+ (await updateVideo(first.id,{status:'completed'}));assert.equal((await reserveSubmission(second.id,1,2)),true);(await updateVideo(second.id,{status:'completed'}));
 });

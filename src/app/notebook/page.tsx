@@ -4,8 +4,8 @@ import { addNote, removeNote } from "../actions";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export default function Home() {
-  const notes = listNotes();
+export default async function Home() {
+  const notes = (await listNotes());
   return (
     <main>
       <header><a className="brand" href="/notebook">▧ Notebook</a><a href="/research">Company research ↗</a></header>

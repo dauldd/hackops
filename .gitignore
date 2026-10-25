@@ -8,4 +8,7 @@ data/
 .agents
 .aws
 .codex
-docs/images/
+docs/images/*
+!docs/images/presenter.png
+!docs/images/README.md
+.env.gmail

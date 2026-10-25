@@ -42,14 +42,14 @@ test('OpenRouter client handles success, errors and truncation without exposing 
 });
 test('pipeline persists validated report, retrieves history, and never saves invalid research',async()=>{
  const request=async()=>({report:fixture(),model:'test/model',usage:null,annotations:[]});
- const saved=await researchCompany(' Example Oy ',request);assert.equal(getResearch(saved.id)?.report.companyName,'Example Oy');assert.equal(listResearch().length,1);assert.equal(getResearch(999999),null);
+ const saved=await researchCompany(' Example Oy ',request);assert.equal((await getResearch(saved.id))?.report.companyName,'Example Oy');assert.equal((await listResearch()).length,1);assert.equal((await getResearch(999999)),null);
  await assert.rejects(researchCompany('Example Oy',async()=>({...await request(),report:{...fixture(),hiringSignals:[{...fixture().hiringSignals[0],sourceUrl:'javascript:unsafe'}]}})));
- await assert.rejects(researchCompany('Bad',async()=>{throw Error('provider failed');}));assert.equal(listResearch().length,1);
+ await assert.rejects(researchCompany('Bad',async()=>{throw Error('provider failed');}));assert.equal((await listResearch()).length,1);
 });
 test('reported tool usage must support genuine multi-step research',async()=>{
  const report=fixture();
  const request=async()=>({report,model:'test/model',usage:{server_tool_use:{web_search_requests:1,web_fetch_requests:0}},annotations:[]});
- const count=listResearch().length;const partial=await researchCompany('Example Oy',request);assert.equal(partial.report.researchStatus,'partial');assert.ok(partial.report.overallScore>0);assert.equal(partial.report.automationOpportunities.length,0);assert.equal(listResearch().length,count+1);
+ const count=(await listResearch()).length;const partial=await researchCompany('Example Oy',request);assert.equal(partial.report.researchStatus,'partial');assert.ok(partial.report.overallScore>0);assert.equal(partial.report.automationOpportunities.length,0);assert.equal((await listResearch()).length,count+1);
  const saved=await researchCompany('Example Oy',async()=>({...await request(),usage:{server_tool_use:{web_search_requests:6,web_fetch_requests:3}}}));assert.ok(!saved.report.limitations.some(s=>s.includes('model-reported')));
 });
 test('same-origin browser submissions work with Next.js internal hostnames',async()=>{
@@ -71,13 +71,13 @@ test('provider JSON fences are accepted while malformed or partial reports remai
 test('persistent activity logs include successful and failed runs and cursor-based retrieval',async()=>{
  const { getResearchRun, listResearchRuns }=await import('../src/lib/db.ts');
  const result=await researchCompany('Example Oy',async (_name,_fetcher,log)=>{log?.('provider.request','Testing research request',{model:'test/model'});return {report:fixture(),model:'test/model',usage:null,annotations:[]};});
- const run=getResearchRun(result.runId)!;
+ const run=(await getResearchRun(result.runId))!;
  assert.equal(run.status,'completed');assert.equal(run.reportId,result.id);
  for(const stage of ['input','planning','provider.request','validation','identity','evidence','scoring','persistence','completed'])assert.ok(run.logs.some(e=>e.stage===stage),stage);
- assert.equal(getResearch(result.id)?.runId,result.runId);
- assert.ok(getResearchRun(result.runId,run.logs[0].id)!.logs.every(e=>e.id>run.logs[0].id));
+ assert.equal((await getResearch(result.id))?.runId,result.runId);
+ assert.ok((await getResearchRun(result.runId,run.logs[0].id))!.logs.every(e=>e.id>run.logs[0].id));
  await assert.rejects(researchCompany('Failed example',async()=>{throw Error('Test provider failure');}));
- const failed=listResearchRuns().find(r=>r.companyName==='Failed example')!;assert.equal(failed.status,'failed');assert.equal(failed.reportId,null);assert.equal(getResearchRun(failed.id)!.logs.at(-1)?.stage,'failed');
+ const failed=(await listResearchRuns()).find(r=>r.companyName==='Failed example')!;assert.equal(failed.status,'failed');assert.equal(failed.reportId,null);assert.equal((await getResearchRun(failed.id))!.logs.at(-1)?.stage,'failed');
 });
 test('logs redact credentials in nested values while preserving research details',async()=>{
  const { redactLogDetails }=await import('../src/lib/research/logging.ts');
@@ -95,14 +95,14 @@ test('ambiguous identity with one search and no fetches saves a safe incomplete 
  const ambiguous={...fixture(),companyName:'hello oy',website:null,identity:{status:'ambiguous',explanation:'No exact legal entity established from available identity sources.',sourceUrls:['https://example.com/registry']},overview:{description:null,industry:null,headquarters:null,employeeCount:null,businessModel:null,productsAndServices:[],customerSegments:[],geographicOperations:[],businessStructure:null,sourceUrls:[]},hiringSignals:[],growthSignals:[],technologySignals:[],operationalSignals:[],automationOpportunities:[]};
  for(const usage of [{server_tool_use_details:{web_search_requests:1,web_fetch_requests:0}},{server_tool_use:{web_search_requests:1,web_fetch_requests:0}}]){
  const result=await researchCompany('hello oy',async()=>({report:ambiguous,model:'test/model',usage,annotations:[]}));
- assert.equal(result.report.identity.status,'ambiguous');assert.equal(result.report.overallScore,0);assert.equal(result.report.automationOpportunities.length,0);assert.ok(result.report.limitations.some(s=>s.includes('incomplete identification report')));assert.equal(getResearchRun(result.runId)?.status,'completed');assert.equal(getResearch(result.id)?.report.website,null);
+ assert.equal(result.report.identity.status,'ambiguous');assert.equal(result.report.overallScore,0);assert.equal(result.report.automationOpportunities.length,0);assert.ok(result.report.limitations.some(s=>s.includes('incomplete identification report')));assert.equal((await getResearchRun(result.runId))?.status,'completed');assert.equal((await getResearch(result.id))?.report.website,null);
  }
  const unsafe={...ambiguous,hiringSignals:fixture().hiringSignals};
  await assert.rejects(researchCompany('hello oy',async()=>({report:unsafe,model:'test/model',usage:{server_tool_use_details:{web_search_requests:1}},annotations:[]})),/Unresolved identity cannot contain attributed research/);
 });
 test('SQLite summaries passed to Client Components are plain objects',async()=>{
  const {listResearchRuns}=await import('../src/lib/db.ts');
- for(const row of [...listResearch(),...listResearchRuns()])assert.equal(Object.getPrototypeOf(row),Object.prototype);
+ for(const row of [...(await listResearch()),...(await listResearchRuns())])assert.equal(Object.getPrototypeOf(row),Object.prototype);
 });
 test('invalid and future publication dates become unknown with explicit limitations',()=>{
  for(const date of ['2025-02-30','2099-01-01','2025-02','yesterday']){

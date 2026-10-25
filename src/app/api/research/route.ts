@@ -7,7 +7,7 @@ import { isSameOriginRequest } from '@/lib/research/http';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
-// Bound concurrent billable requests in this single-process SQLite application.
+// Bound concurrent billable requests within this process (not across Vercel instances).
 let busy = false;
 export async function POST(request: Request) {
  if (!isSameOriginRequest(request)) return NextResponse.json({ error: 'Cross-origin research requests are not allowed.' }, { status: 403 });
@@ -34,4 +34,4 @@ export async function POST(request: Request) {
  return NextResponse.json({ error: 'Research could not be saved. Please retry.' }, { status: 500 });
  } finally { busy = false; }
 }
-export async function GET() { return NextResponse.json({ results: listResearch() }, { headers: { 'Cache-Control': 'no-store' } }); }
+export async function GET() { return NextResponse.json({ results: (await listResearch()) }, { headers: { 'Cache-Control': 'no-store' } }); }

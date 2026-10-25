@@ -7,12 +7,15 @@ export function redactLogDetails(value: unknown): unknown {
  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, /^(authorization|api[_-]?key|access[_-]?token|secret|reasoning|reasoning_details|analysis)$/i.test(key) ? '[REDACTED]' : redactLogDetails(item)]));
  return value;
 }
-export function createResearchLogger(runId: string): ResearchLogger {
- return (stage, message, details = null, level = 'info') => {
+export function createResearchLogger(runId: string) {
+ let pending = Promise.resolve();
+ let failure: unknown;
+ const logger: ResearchLogger = (stage, message, details = null, level = 'info') => {
  const safe = redactLogDetails(details);
- appendResearchLog(runId, stage, level, String(redactLogDetails(message)), safe);
+ pending = pending.then(() => appendResearchLog(runId, stage, level, String(redactLogDetails(message)), safe)).catch(error => { failure ??= error; });
  const output = `[research:${runId}] ${stage}: ${String(redactLogDetails(message))}`;
  const write = level === 'error' ? console.error : level === 'warning' ? console.warn : console.info;
  write(output, safe === null ? '' : JSON.stringify(safe));
  };
+ return Object.assign(logger, {async flush() {await pending; if (failure) throw failure;}});
 }

@@ -1,5 +1,6 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
+import EmailPanel from './email-panel';
 import type {publicVideo} from '@/lib/video/store';
 type Job=ReturnType<typeof publicVideo>;
 function externalUrl(value:string|null){try{const url=new URL(value??'');return ['https:','http:'].includes(url.protocol)&&!['localhost','127.0.0.1','[::1]'].includes(url.hostname)?url:null;}catch{return null;}}
@@ -21,6 +22,7 @@ export default function VideoPresenter({companyId}:{companyId:number}){
  {active&&<p>The video will appear here automatically when it is ready.</p>}
  {job.error&&<p role="alert">{job.error}</p>}
  {job.videoUrl&&<div className="presenter-player" key={`player-${job.id}`}><video controls playsInline preload="metadata" src={job.videoUrl} aria-label="Velho AI presenter observation"/></div>}
+ {job.status==='completed'&&<EmailPanel key={job.id} videoId={job.id}/>}
  {job.confirmedCost!==null&&<details className="video-costs" key={`costs-${job.id}`}><summary>Costs</summary><p>Confirmed cost: ${job.confirmedCost.toFixed(4)}</p></details>}
  {reviewing&&job.script&&<div className="video-script-preview">
  {job.script.sentences.map((sentence,index)=><p key={index}>{sentence.text}</p>)}

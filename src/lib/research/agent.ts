@@ -39,7 +39,7 @@ function validateRequestedIdentity(report: CompanyResearch, name: string, log: R
 export async function researchCompany(companyName: string, request = requestResearch, options: { runId?: string } = {}) {
  const name = parseCompanyName(companyName);
  const runId = options.runId ?? randomUUID();
- createResearchRun(runId, name);
+ (await createResearchRun(runId, name));
  const persistLog = createResearchLogger(runId);
  const providerUsages: unknown[] = [];
  let providerAttempts = 0;
@@ -107,15 +107,17 @@ export async function researchCompany(companyName: string, request = requestRese
  log('qualification', 'Customer fit, evidence-constrained automation potential, and commercial attractiveness assessed independently.', report.qualification);
  log('efficiency', 'Research usage and unique source coverage.', report.researchMetrics);
  log('scoring', 'Opportunity scores constrained by evidence, freshness, confidence, and existing solution coverage.', { overallScore: report.overallScore, opportunities: report.automationOpportunities });
- log('persistence', 'Saving validated report in SQLite.');
- const saved = insertResearch(name, report, result.model, result.usage, result.annotations);
+ log('persistence', 'Saving validated report.');
+ const saved = (await insertResearch(name, report, result.model, result.usage, result.annotations));
  log('completed', 'Research report saved and available to downstream agents.', { reportId: saved.id, researchStatus: report.researchStatus, researchedAt: report.researchedAt });
- finishResearchRun(runId, saved.id);
+ await persistLog.flush();
+ (await finishResearchRun(runId, saved.id));
  return { ...saved, runId };
  } catch (error) {
  const message = error instanceof Error ? error.message : 'Unknown research error';
  log('failed', message, { errorType: error instanceof Error ? error.name : 'Unknown' }, 'error');
- finishResearchRun(runId, null, message);
+ await persistLog.flush();
+ (await finishResearchRun(runId, null, message));
  throw error;
  }
 }

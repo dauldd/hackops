@@ -73,12 +73,12 @@ export async function createVisualizationReport(research:CompanyResearch,proposa
  return base;
 }
 export async function visualizeCompany(researchId:number,provided:Proposal[]|undefined,overrides:unknown,runId=randomUUID()){
- const saved=getResearch(researchId);if(!saved)throw new ValidationError('Saved company research was not found.');
- createResearchRun(runId,`${saved.report.companyName} · Visualization`);const log=createResearchLogger(runId);
+ const saved=(await getResearch(researchId));if(!saved)throw new ValidationError('Saved company research was not found.');
+ (await createResearchRun(runId,`${saved.report.companyName} · Visualization`));const log=createResearchLogger(runId);
  try{
  const proposals=provided??saved.report.automationOpportunities.filter(o=>o.implementationApproach!=='discovery'&&!/^No implementation proposal/i.test(o.proposedSolution)).slice(0,5).map((o,i):Proposal=>({id:`research-opportunity-${i+1}`,title:o.title,process:o.title,problem:o.hypothesis,proposedSolution:o.proposedSolution,evidence:o.evidence,currentWorkflow:[],proposedWorkflow:[],currentWorkflowStatus:'unknown'}));
  const inputs=validateInputOverrides(overrides,saved.report);
  const report=await createVisualizationReport(saved.report,proposals,researchId,inputs,provided?'provided':proposals.length?'research_opportunities':'none',log);
- const artifact=insertVisualization(researchId,report,runId);log('visualization.completed','Business case and chart datasets saved.',{visualizationId:artifact.id,status:report.status,charts:report.businessCases.reduce((total,c)=>total+c.charts.length,0)});finishResearchRun(runId,null);return artifact;
- }catch(error){log('visualization.failed',error instanceof Error?error.message:'Visualization failed.',null,'error');finishResearchRun(runId,null,error instanceof Error?error.message:'Visualization failed.');throw error;}
+ const artifact=(await insertVisualization(researchId,report,runId));log('visualization.completed','Business case and chart datasets saved.',{visualizationId:artifact.id,status:report.status,charts:report.businessCases.reduce((total,c)=>total+c.charts.length,0)});await log.flush();(await finishResearchRun(runId,null));return artifact;
+ }catch(error){log('visualization.failed',error instanceof Error?error.message:'Visualization failed.',null,'error');await log.flush();(await finishResearchRun(runId,null,error instanceof Error?error.message:'Visualization failed.'));throw error;}
 }
